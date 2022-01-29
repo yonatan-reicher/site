@@ -52,28 +52,33 @@ type Route
 routeParser : Url.Parser.Parser (Route -> a) a
 routeParser =
     Url.Parser.oneOf
-        [ Url.Parser.s "index.html" |> Url.Parser.map HomeRoute
-        , Url.Parser.top |> Url.Parser.map HomeRoute
+        [ Url.Parser.top |> Url.Parser.map HomeRoute
         , Url.Parser.s "blog" |> Url.Parser.map BlogRoute
         ]
 
 
 urlToRoute : Url.Url -> Maybe Route
-urlToRoute = Url.Parser.parse routeParser
+urlToRoute url = 
+    -- The RealWorld spec treats the fragment like a path.
+    -- This makes it *literally* the path, so we can proceed
+    -- with parsing as if it had been a normal path all along.
+    -- Copied from elm-spa
+    { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
+        |> Url.Parser.parse routeParser
 
 
 changeRoute : Maybe Route -> Model -> (Model, Cmd Msg)
 changeRoute route model =
     case route of
-        Nothing -> (model, Cmd.none) |> Debug.log "No route"
+        Nothing -> (model, Cmd.none)
 
         Just HomeRoute ->
             ({ model | page = Home { field = Software } }
             , Cmd.none
-            ) |> Debug.log "Home route"
+            )
 
         Just BlogRoute ->
-            ({ model | page = Blog }, Cmd.none) |> Debug.log "Blog route"
+            ({ model | page = Blog }, Cmd.none)
 
 
 main : Program Flags Model Msg
@@ -166,7 +171,7 @@ viewProjects =
         [ h1 [] [ text "Projects" ]
         , ul []
             [ li []
-                [ a [ href "/blog" ]
+                [ a [ href "#/blog" ]
                     [ text "Articles" ]
                 ]
             , li []

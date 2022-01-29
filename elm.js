@@ -5194,38 +5194,28 @@ var $author$project$Main$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$none;
 };
 var $author$project$Main$Blog = {$: 'Blog'};
-var $elm$core$Debug$log = _Debug_log;
 var $author$project$Main$changeRoute = F2(
 	function (route, model) {
 		if (route.$ === 'Nothing') {
-			return A2(
-				$elm$core$Debug$log,
-				'No route',
-				_Utils_Tuple2(model, $elm$core$Platform$Cmd$none));
+			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		} else {
 			if (route.a.$ === 'HomeRoute') {
 				var _v1 = route.a;
-				return A2(
-					$elm$core$Debug$log,
-					'Home route',
-					_Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								page: $author$project$Main$Home(
-									{field: $author$project$Main$Software})
-							}),
-						$elm$core$Platform$Cmd$none));
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							page: $author$project$Main$Home(
+								{field: $author$project$Main$Software})
+						}),
+					$elm$core$Platform$Cmd$none);
 			} else {
 				var _v2 = route.a;
-				return A2(
-					$elm$core$Debug$log,
-					'Blog route',
-					_Utils_Tuple2(
-						_Utils_update(
-							model,
-							{page: $author$project$Main$Blog}),
-						$elm$core$Platform$Cmd$none));
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{page: $author$project$Main$Blog}),
+					$elm$core$Platform$Cmd$none);
 			}
 		}
 	});
@@ -6008,17 +5998,32 @@ var $elm$url$Url$Parser$top = $elm$url$Url$Parser$Parser(
 var $author$project$Main$routeParser = $elm$url$Url$Parser$oneOf(
 	_List_fromArray(
 		[
-			A2(
-			$elm$url$Url$Parser$map,
-			$author$project$Main$HomeRoute,
-			$elm$url$Url$Parser$s('index.html')),
 			A2($elm$url$Url$Parser$map, $author$project$Main$HomeRoute, $elm$url$Url$Parser$top),
 			A2(
 			$elm$url$Url$Parser$map,
 			$author$project$Main$BlogRoute,
 			$elm$url$Url$Parser$s('blog'))
 		]));
-var $author$project$Main$urlToRoute = $elm$url$Url$Parser$parse($author$project$Main$routeParser);
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Main$urlToRoute = function (url) {
+	return A2(
+		$elm$url$Url$Parser$parse,
+		$author$project$Main$routeParser,
+		_Utils_update(
+			url,
+			{
+				fragment: $elm$core$Maybe$Nothing,
+				path: A2($elm$core$Maybe$withDefault, '', url.fragment)
+			}));
+};
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -6258,7 +6263,7 @@ var $author$project$Main$viewProjects = A2(
 							$elm$html$Html$a,
 							_List_fromArray(
 								[
-									$elm$html$Html$Attributes$href('/blog')
+									$elm$html$Html$Attributes$href('#/blog')
 								]),
 							_List_fromArray(
 								[
