@@ -64,7 +64,7 @@ urlToRoute url =
     -- with parsing as if it had been a normal path all along.
     -- Copied from elm-spa
     { url | path = Maybe.withDefault "" url.fragment, fragment = Nothing }
-        |> Url.Parser.parse routeParser
+    |> Url.Parser.parse routeParser
 
 
 changeRoute : Maybe Route -> Model -> (Model, Cmd Msg)
@@ -95,9 +95,8 @@ main =
 
 init : Flags -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init () url key =
-    ( Model key url <| Home { field = Software }
-    , Cmd.none
-    )
+    Model key url (Home { field = Software })
+    |> changeRoute (urlToRoute url)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -184,7 +183,7 @@ viewProjects =
 
 viewBlog : Html Msg
 viewBlog = 
-    text "blog lol"
+    iframe [ src "./blog/python-variables-are-by-value.html" ] []
 
 
 subscriptions : Model -> Sub Msg
