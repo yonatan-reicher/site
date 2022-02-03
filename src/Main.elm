@@ -6,7 +6,8 @@ import Html.Events exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Url
-import Url.Parser
+import Url.Parser exposing ((</>))
+import Blog
 
 
 type alias Flags = ()
@@ -14,7 +15,7 @@ type alias Flags = ()
 
 type Page
     = Home { field: Field }
-    | Blog
+    | Blog Blog.Model
 
 
 type alias Model =
@@ -34,6 +35,7 @@ type Msg
     = SetField Field
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
+    | BlogMsg Blog.Msg
 
 
 fieldToString : Field -> String
@@ -46,14 +48,19 @@ fieldToString field =
 
 type Route
     = HomeRoute
-    | BlogRoute
+    | BlogRoute (Maybe String)
 
 
 routeParser : Url.Parser.Parser (Route -> a) a
 routeParser =
     Url.Parser.oneOf
         [ Url.Parser.top |> Url.Parser.map HomeRoute
-        , Url.Parser.s "blog" |> Url.Parser.map BlogRoute
+        , Url.Parser.s "blog"
+          </> Url.Parser.oneOf
+            [ Url.Parser.map Nothing Url.Parser.top
+            , Url.Parser.map Just (Url.Parser.s "posts" </> Url.Parser.string)
+            ]
+          |> Url.Parser.map BlogRoute
         ]
 
 
@@ -77,8 +84,12 @@ changeRoute route model =
             , Cmd.none
             )
 
-        Just BlogRoute ->
-            ({ model | page = Blog }, Cmd.none)
+        Just (BlogRoute maybeFileName) ->
+            Blog.init maybeFileName
+            |> Tuple.mapFirst (\blogModel ->
+                { model | page = Blog blogModel }
+            )
+            |> Tuple.mapSecond (Cmd.map BlogMsg)
 
 
 main : Program Flags Model Msg
@@ -116,6 +127,16 @@ update msg model =
                 Browser.External href ->
                     (model, Nav.load href)
 
+        BlogMsg blogMsg ->
+            case model.page of
+                Blog blogModel ->
+                    Blog.update blogMsg blogModel
+                    |> Tuple.mapFirst (\newBlogModel ->
+                        { model | page = Blog newBlogModel }
+                    )
+                    |> Tuple.mapSecond (Cmd.map BlogMsg)
+
+                _ -> (model, Cmd.none)
 
 view : Model -> Browser.Document Msg
 view model =
@@ -127,8 +148,10 @@ view model =
                 , viewProjects
                 ]
 
-            Blog ->
-                [ viewBlog ]
+            Blog blogModel ->
+                [ Blog.view blogModel
+                  |> Html.map BlogMsg
+                ]
     }
 
 
@@ -179,11 +202,6 @@ viewProjects =
                 ]
             ]
         ]
-
-
-viewBlog : Html Msg
-viewBlog = 
-    iframe [ src "./blog/python-variables-are-by-value.html" ] []
 
 
 subscriptions : Model -> Sub Msg

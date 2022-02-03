@@ -4357,6 +4357,311 @@ function _Browser_load(url)
 }
 
 
+
+// SEND REQUEST
+
+var _Http_toTask = F3(function(router, toTask, request)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		function done(response) {
+			callback(toTask(request.expect.a(response)));
+		}
+
+		var xhr = new XMLHttpRequest();
+		xhr.addEventListener('error', function() { done($elm$http$Http$NetworkError_); });
+		xhr.addEventListener('timeout', function() { done($elm$http$Http$Timeout_); });
+		xhr.addEventListener('load', function() { done(_Http_toResponse(request.expect.b, xhr)); });
+		$elm$core$Maybe$isJust(request.tracker) && _Http_track(router, xhr, request.tracker.a);
+
+		try {
+			xhr.open(request.method, request.url, true);
+		} catch (e) {
+			return done($elm$http$Http$BadUrl_(request.url));
+		}
+
+		_Http_configureRequest(xhr, request);
+
+		request.body.a && xhr.setRequestHeader('Content-Type', request.body.a);
+		xhr.send(request.body.b);
+
+		return function() { xhr.c = true; xhr.abort(); };
+	});
+});
+
+
+// CONFIGURE
+
+function _Http_configureRequest(xhr, request)
+{
+	for (var headers = request.headers; headers.b; headers = headers.b) // WHILE_CONS
+	{
+		xhr.setRequestHeader(headers.a.a, headers.a.b);
+	}
+	xhr.timeout = request.timeout.a || 0;
+	xhr.responseType = request.expect.d;
+	xhr.withCredentials = request.allowCookiesFromOtherDomains;
+}
+
+
+// RESPONSES
+
+function _Http_toResponse(toBody, xhr)
+{
+	return A2(
+		200 <= xhr.status && xhr.status < 300 ? $elm$http$Http$GoodStatus_ : $elm$http$Http$BadStatus_,
+		_Http_toMetadata(xhr),
+		toBody(xhr.response)
+	);
+}
+
+
+// METADATA
+
+function _Http_toMetadata(xhr)
+{
+	return {
+		url: xhr.responseURL,
+		statusCode: xhr.status,
+		statusText: xhr.statusText,
+		headers: _Http_parseHeaders(xhr.getAllResponseHeaders())
+	};
+}
+
+
+// HEADERS
+
+function _Http_parseHeaders(rawHeaders)
+{
+	if (!rawHeaders)
+	{
+		return $elm$core$Dict$empty;
+	}
+
+	var headers = $elm$core$Dict$empty;
+	var headerPairs = rawHeaders.split('\r\n');
+	for (var i = headerPairs.length; i--; )
+	{
+		var headerPair = headerPairs[i];
+		var index = headerPair.indexOf(': ');
+		if (index > 0)
+		{
+			var key = headerPair.substring(0, index);
+			var value = headerPair.substring(index + 2);
+
+			headers = A3($elm$core$Dict$update, key, function(oldValue) {
+				return $elm$core$Maybe$Just($elm$core$Maybe$isJust(oldValue)
+					? value + ', ' + oldValue.a
+					: value
+				);
+			}, headers);
+		}
+	}
+	return headers;
+}
+
+
+// EXPECT
+
+var _Http_expect = F3(function(type, toBody, toValue)
+{
+	return {
+		$: 0,
+		d: type,
+		b: toBody,
+		a: toValue
+	};
+});
+
+var _Http_mapExpect = F2(function(func, expect)
+{
+	return {
+		$: 0,
+		d: expect.d,
+		b: expect.b,
+		a: function(x) { return func(expect.a(x)); }
+	};
+});
+
+function _Http_toDataView(arrayBuffer)
+{
+	return new DataView(arrayBuffer);
+}
+
+
+// BODY and PARTS
+
+var _Http_emptyBody = { $: 0 };
+var _Http_pair = F2(function(a, b) { return { $: 0, a: a, b: b }; });
+
+function _Http_toFormData(parts)
+{
+	for (var formData = new FormData(); parts.b; parts = parts.b) // WHILE_CONS
+	{
+		var part = parts.a;
+		formData.append(part.a, part.b);
+	}
+	return formData;
+}
+
+var _Http_bytesToBlob = F2(function(mime, bytes)
+{
+	return new Blob([bytes], { type: mime });
+});
+
+
+// PROGRESS
+
+function _Http_track(router, xhr, tracker)
+{
+	// TODO check out lengthComputable on loadstart event
+
+	xhr.upload.addEventListener('progress', function(event) {
+		if (xhr.c) { return; }
+		_Scheduler_rawSpawn(A2($elm$core$Platform$sendToSelf, router, _Utils_Tuple2(tracker, $elm$http$Http$Sending({
+			sent: event.loaded,
+			size: event.total
+		}))));
+	});
+	xhr.addEventListener('progress', function(event) {
+		if (xhr.c) { return; }
+		_Scheduler_rawSpawn(A2($elm$core$Platform$sendToSelf, router, _Utils_Tuple2(tracker, $elm$http$Http$Receiving({
+			received: event.loaded,
+			size: event.lengthComputable ? $elm$core$Maybe$Just(event.total) : $elm$core$Maybe$Nothing
+		}))));
+	});
+}
+
+
+
+// STRINGS
+
+
+var _Parser_isSubString = F5(function(smallString, offset, row, col, bigString)
+{
+	var smallLength = smallString.length;
+	var isGood = offset + smallLength <= bigString.length;
+
+	for (var i = 0; isGood && i < smallLength; )
+	{
+		var code = bigString.charCodeAt(offset);
+		isGood =
+			smallString[i++] === bigString[offset++]
+			&& (
+				code === 0x000A /* \n */
+					? ( row++, col=1 )
+					: ( col++, (code & 0xF800) === 0xD800 ? smallString[i++] === bigString[offset++] : 1 )
+			)
+	}
+
+	return _Utils_Tuple3(isGood ? offset : -1, row, col);
+});
+
+
+
+// CHARS
+
+
+var _Parser_isSubChar = F3(function(predicate, offset, string)
+{
+	return (
+		string.length <= offset
+			? -1
+			:
+		(string.charCodeAt(offset) & 0xF800) === 0xD800
+			? (predicate(_Utils_chr(string.substr(offset, 2))) ? offset + 2 : -1)
+			:
+		(predicate(_Utils_chr(string[offset]))
+			? ((string[offset] === '\n') ? -2 : (offset + 1))
+			: -1
+		)
+	);
+});
+
+
+var _Parser_isAsciiCode = F3(function(code, offset, string)
+{
+	return string.charCodeAt(offset) === code;
+});
+
+
+
+// NUMBERS
+
+
+var _Parser_chompBase10 = F2(function(offset, string)
+{
+	for (; offset < string.length; offset++)
+	{
+		var code = string.charCodeAt(offset);
+		if (code < 0x30 || 0x39 < code)
+		{
+			return offset;
+		}
+	}
+	return offset;
+});
+
+
+var _Parser_consumeBase = F3(function(base, offset, string)
+{
+	for (var total = 0; offset < string.length; offset++)
+	{
+		var digit = string.charCodeAt(offset) - 0x30;
+		if (digit < 0 || base <= digit) break;
+		total = base * total + digit;
+	}
+	return _Utils_Tuple2(offset, total);
+});
+
+
+var _Parser_consumeBase16 = F2(function(offset, string)
+{
+	for (var total = 0; offset < string.length; offset++)
+	{
+		var code = string.charCodeAt(offset);
+		if (0x30 <= code && code <= 0x39)
+		{
+			total = 16 * total + code - 0x30;
+		}
+		else if (0x41 <= code && code <= 0x46)
+		{
+			total = 16 * total + code - 55;
+		}
+		else if (0x61 <= code && code <= 0x66)
+		{
+			total = 16 * total + code - 87;
+		}
+		else
+		{
+			break;
+		}
+	}
+	return _Utils_Tuple2(offset, total);
+});
+
+
+
+// FIND STRING
+
+
+var _Parser_findSubString = F5(function(smallString, offset, row, col, bigString)
+{
+	var newOffset = bigString.indexOf(smallString, offset);
+	var target = newOffset < 0 ? bigString.length : newOffset + smallString.length;
+
+	while (offset < target)
+	{
+		var code = bigString.charCodeAt(offset++);
+		code === 0x000A /* \n */
+			? ( col=1, row++ )
+			: ( col++, (code & 0xF800) === 0xD800 && offset++ )
+	}
+
+	return _Utils_Tuple3(newOffset, row, col);
+});
+
+
 function _Url_percentEncode(string)
 {
 	return encodeURIComponent(string);
@@ -5175,100 +5480,69 @@ var $author$project$Main$Model = F3(
 		return {key: key, page: page, url: url};
 	});
 var $author$project$Main$Software = {$: 'Software'};
-var $author$project$Main$Blog = {$: 'Blog'};
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Main$changeRoute = F2(
-	function (route, model) {
-		if (route.$ === 'Nothing') {
-			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-		} else {
-			if (route.a.$ === 'HomeRoute') {
-				var _v1 = route.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							page: $author$project$Main$Home(
-								{field: $author$project$Main$Software})
-						}),
-					$elm$core$Platform$Cmd$none);
-			} else {
-				var _v2 = route.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{page: $author$project$Main$Blog}),
-					$elm$core$Platform$Cmd$none);
-			}
-		}
-	});
-var $elm$url$Url$Parser$State = F5(
-	function (visited, unvisited, params, frag, value) {
-		return {frag: frag, params: params, unvisited: unvisited, value: value, visited: visited};
-	});
-var $elm$url$Url$Parser$getFirstMatch = function (states) {
-	getFirstMatch:
-	while (true) {
-		if (!states.b) {
-			return $elm$core$Maybe$Nothing;
-		} else {
-			var state = states.a;
-			var rest = states.b;
-			var _v1 = state.unvisited;
-			if (!_v1.b) {
-				return $elm$core$Maybe$Just(state.value);
-			} else {
-				if ((_v1.a === '') && (!_v1.b.b)) {
-					return $elm$core$Maybe$Just(state.value);
-				} else {
-					var $temp$states = rest;
-					states = $temp$states;
-					continue getFirstMatch;
-				}
-			}
-		}
-	}
+var $author$project$Main$Blog = function (a) {
+	return {$: 'Blog', a: a};
 };
-var $elm$url$Url$Parser$removeFinalEmpty = function (segments) {
-	if (!segments.b) {
-		return _List_Nil;
+var $author$project$Main$BlogMsg = function (a) {
+	return {$: 'BlogMsg', a: a};
+};
+var $author$project$Blog$GetPostError = function (a) {
+	return {$: 'GetPostError', a: a};
+};
+var $author$project$Blog$Index = function (a) {
+	return {$: 'Index', a: a};
+};
+var $author$project$Blog$LoadingPost = function (a) {
+	return {$: 'LoadingPost', a: a};
+};
+var $author$project$Blog$PostLoaded = function (a) {
+	return {$: 'PostLoaded', a: a};
+};
+var $author$project$Blog$PostParsingError = {$: 'PostParsingError'};
+var $elm$core$Result$andThen = F2(
+	function (callback, result) {
+		if (result.$ === 'Ok') {
+			var value = result.a;
+			return callback(value);
+		} else {
+			var msg = result.a;
+			return $elm$core$Result$Err(msg);
+		}
+	});
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $elm$http$Http$BadStatus_ = F2(
+	function (a, b) {
+		return {$: 'BadStatus_', a: a, b: b};
+	});
+var $elm$http$Http$BadUrl_ = function (a) {
+	return {$: 'BadUrl_', a: a};
+};
+var $elm$http$Http$GoodStatus_ = F2(
+	function (a, b) {
+		return {$: 'GoodStatus_', a: a, b: b};
+	});
+var $elm$http$Http$NetworkError_ = {$: 'NetworkError_'};
+var $elm$http$Http$Receiving = function (a) {
+	return {$: 'Receiving', a: a};
+};
+var $elm$http$Http$Sending = function (a) {
+	return {$: 'Sending', a: a};
+};
+var $elm$http$Http$Timeout_ = {$: 'Timeout_'};
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $elm$core$Maybe$isJust = function (maybe) {
+	if (maybe.$ === 'Just') {
+		return true;
 	} else {
-		if ((segments.a === '') && (!segments.b.b)) {
-			return _List_Nil;
-		} else {
-			var segment = segments.a;
-			var rest = segments.b;
-			return A2(
-				$elm$core$List$cons,
-				segment,
-				$elm$url$Url$Parser$removeFinalEmpty(rest));
-		}
+		return false;
 	}
 };
-var $elm$url$Url$Parser$preparePath = function (path) {
-	var _v0 = A2($elm$core$String$split, '/', path);
-	if (_v0.b && (_v0.a === '')) {
-		var segments = _v0.b;
-		return $elm$url$Url$Parser$removeFinalEmpty(segments);
-	} else {
-		var segments = _v0;
-		return $elm$url$Url$Parser$removeFinalEmpty(segments);
-	}
-};
-var $elm$url$Url$Parser$addToParametersHelp = F2(
-	function (value, maybeList) {
-		if (maybeList.$ === 'Nothing') {
-			return $elm$core$Maybe$Just(
-				_List_fromArray(
-					[value]));
-		} else {
-			var list = maybeList.a;
-			return $elm$core$Maybe$Just(
-				A2($elm$core$List$cons, value, list));
-		}
-	});
-var $elm$url$Url$percentDecode = _Url_percentDecode;
+var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
 var $elm$core$Basics$compare = _Utils_compare;
 var $elm$core$Dict$get = F2(
 	function (targetKey, dict) {
@@ -5306,7 +5580,6 @@ var $elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
 		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
 	});
-var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$Red = {$: 'Red'};
 var $elm$core$Dict$balance = F5(
 	function (color, key, value, left, right) {
@@ -5783,6 +6056,4340 @@ var $elm$core$Dict$update = F3(
 			return A2($elm$core$Dict$remove, targetKey, dictionary);
 		}
 	});
+var $elm$http$Http$expectStringResponse = F2(
+	function (toMsg, toResult) {
+		return A3(
+			_Http_expect,
+			'',
+			$elm$core$Basics$identity,
+			A2($elm$core$Basics$composeR, toResult, toMsg));
+	});
+var $elm$http$Http$BadBody = function (a) {
+	return {$: 'BadBody', a: a};
+};
+var $elm$http$Http$BadStatus = function (a) {
+	return {$: 'BadStatus', a: a};
+};
+var $elm$http$Http$BadUrl = function (a) {
+	return {$: 'BadUrl', a: a};
+};
+var $elm$http$Http$NetworkError = {$: 'NetworkError'};
+var $elm$http$Http$Timeout = {$: 'Timeout'};
+var $elm$core$Result$mapError = F2(
+	function (f, result) {
+		if (result.$ === 'Ok') {
+			var v = result.a;
+			return $elm$core$Result$Ok(v);
+		} else {
+			var e = result.a;
+			return $elm$core$Result$Err(
+				f(e));
+		}
+	});
+var $elm$http$Http$resolve = F2(
+	function (toResult, response) {
+		switch (response.$) {
+			case 'BadUrl_':
+				var url = response.a;
+				return $elm$core$Result$Err(
+					$elm$http$Http$BadUrl(url));
+			case 'Timeout_':
+				return $elm$core$Result$Err($elm$http$Http$Timeout);
+			case 'NetworkError_':
+				return $elm$core$Result$Err($elm$http$Http$NetworkError);
+			case 'BadStatus_':
+				var metadata = response.a;
+				return $elm$core$Result$Err(
+					$elm$http$Http$BadStatus(metadata.statusCode));
+			default:
+				var body = response.b;
+				return A2(
+					$elm$core$Result$mapError,
+					$elm$http$Http$BadBody,
+					toResult(body));
+		}
+	});
+var $elm$http$Http$expectString = function (toMsg) {
+	return A2(
+		$elm$http$Http$expectStringResponse,
+		toMsg,
+		$elm$http$Http$resolve($elm$core$Result$Ok));
+};
+var $author$project$Blog$LoadPosts = function (a) {
+	return {$: 'LoadPosts', a: a};
+};
+var $author$project$Blog$LoadPostsError = function (a) {
+	return {$: 'LoadPostsError', a: a};
+};
+var $elm$json$Json$Decode$decodeString = _Json_runOnString;
+var $elm$http$Http$expectJson = F2(
+	function (toMsg, decoder) {
+		return A2(
+			$elm$http$Http$expectStringResponse,
+			toMsg,
+			$elm$http$Http$resolve(
+				function (string) {
+					return A2(
+						$elm$core$Result$mapError,
+						$elm$json$Json$Decode$errorToString,
+						A2($elm$json$Json$Decode$decodeString, decoder, string));
+				}));
+	});
+var $elm$http$Http$emptyBody = _Http_emptyBody;
+var $elm$http$Http$Request = function (a) {
+	return {$: 'Request', a: a};
+};
+var $elm$http$Http$State = F2(
+	function (reqs, subs) {
+		return {reqs: reqs, subs: subs};
+	});
+var $elm$http$Http$init = $elm$core$Task$succeed(
+	A2($elm$http$Http$State, $elm$core$Dict$empty, _List_Nil));
+var $elm$core$Process$kill = _Scheduler_kill;
+var $elm$core$Process$spawn = _Scheduler_spawn;
+var $elm$http$Http$updateReqs = F3(
+	function (router, cmds, reqs) {
+		updateReqs:
+		while (true) {
+			if (!cmds.b) {
+				return $elm$core$Task$succeed(reqs);
+			} else {
+				var cmd = cmds.a;
+				var otherCmds = cmds.b;
+				if (cmd.$ === 'Cancel') {
+					var tracker = cmd.a;
+					var _v2 = A2($elm$core$Dict$get, tracker, reqs);
+					if (_v2.$ === 'Nothing') {
+						var $temp$router = router,
+							$temp$cmds = otherCmds,
+							$temp$reqs = reqs;
+						router = $temp$router;
+						cmds = $temp$cmds;
+						reqs = $temp$reqs;
+						continue updateReqs;
+					} else {
+						var pid = _v2.a;
+						return A2(
+							$elm$core$Task$andThen,
+							function (_v3) {
+								return A3(
+									$elm$http$Http$updateReqs,
+									router,
+									otherCmds,
+									A2($elm$core$Dict$remove, tracker, reqs));
+							},
+							$elm$core$Process$kill(pid));
+					}
+				} else {
+					var req = cmd.a;
+					return A2(
+						$elm$core$Task$andThen,
+						function (pid) {
+							var _v4 = req.tracker;
+							if (_v4.$ === 'Nothing') {
+								return A3($elm$http$Http$updateReqs, router, otherCmds, reqs);
+							} else {
+								var tracker = _v4.a;
+								return A3(
+									$elm$http$Http$updateReqs,
+									router,
+									otherCmds,
+									A3($elm$core$Dict$insert, tracker, pid, reqs));
+							}
+						},
+						$elm$core$Process$spawn(
+							A3(
+								_Http_toTask,
+								router,
+								$elm$core$Platform$sendToApp(router),
+								req)));
+				}
+			}
+		}
+	});
+var $elm$http$Http$onEffects = F4(
+	function (router, cmds, subs, state) {
+		return A2(
+			$elm$core$Task$andThen,
+			function (reqs) {
+				return $elm$core$Task$succeed(
+					A2($elm$http$Http$State, reqs, subs));
+			},
+			A3($elm$http$Http$updateReqs, router, cmds, state.reqs));
+	});
+var $elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _v0 = f(mx);
+		if (_v0.$ === 'Just') {
+			var x = _v0.a;
+			return A2($elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var $elm$core$List$filterMap = F2(
+	function (f, xs) {
+		return A3(
+			$elm$core$List$foldr,
+			$elm$core$List$maybeCons(f),
+			_List_Nil,
+			xs);
+	});
+var $elm$http$Http$maybeSend = F4(
+	function (router, desiredTracker, progress, _v0) {
+		var actualTracker = _v0.a;
+		var toMsg = _v0.b;
+		return _Utils_eq(desiredTracker, actualTracker) ? $elm$core$Maybe$Just(
+			A2(
+				$elm$core$Platform$sendToApp,
+				router,
+				toMsg(progress))) : $elm$core$Maybe$Nothing;
+	});
+var $elm$http$Http$onSelfMsg = F3(
+	function (router, _v0, state) {
+		var tracker = _v0.a;
+		var progress = _v0.b;
+		return A2(
+			$elm$core$Task$andThen,
+			function (_v1) {
+				return $elm$core$Task$succeed(state);
+			},
+			$elm$core$Task$sequence(
+				A2(
+					$elm$core$List$filterMap,
+					A3($elm$http$Http$maybeSend, router, tracker, progress),
+					state.subs)));
+	});
+var $elm$http$Http$Cancel = function (a) {
+	return {$: 'Cancel', a: a};
+};
+var $elm$http$Http$cmdMap = F2(
+	function (func, cmd) {
+		if (cmd.$ === 'Cancel') {
+			var tracker = cmd.a;
+			return $elm$http$Http$Cancel(tracker);
+		} else {
+			var r = cmd.a;
+			return $elm$http$Http$Request(
+				{
+					allowCookiesFromOtherDomains: r.allowCookiesFromOtherDomains,
+					body: r.body,
+					expect: A2(_Http_mapExpect, func, r.expect),
+					headers: r.headers,
+					method: r.method,
+					timeout: r.timeout,
+					tracker: r.tracker,
+					url: r.url
+				});
+		}
+	});
+var $elm$http$Http$MySub = F2(
+	function (a, b) {
+		return {$: 'MySub', a: a, b: b};
+	});
+var $elm$http$Http$subMap = F2(
+	function (func, _v0) {
+		var tracker = _v0.a;
+		var toMsg = _v0.b;
+		return A2(
+			$elm$http$Http$MySub,
+			tracker,
+			A2($elm$core$Basics$composeR, toMsg, func));
+	});
+_Platform_effectManagers['Http'] = _Platform_createManager($elm$http$Http$init, $elm$http$Http$onEffects, $elm$http$Http$onSelfMsg, $elm$http$Http$cmdMap, $elm$http$Http$subMap);
+var $elm$http$Http$command = _Platform_leaf('Http');
+var $elm$http$Http$subscription = _Platform_leaf('Http');
+var $elm$http$Http$request = function (r) {
+	return $elm$http$Http$command(
+		$elm$http$Http$Request(
+			{allowCookiesFromOtherDomains: false, body: r.body, expect: r.expect, headers: r.headers, method: r.method, timeout: r.timeout, tracker: r.tracker, url: r.url}));
+};
+var $elm$http$Http$get = function (r) {
+	return $elm$http$Http$request(
+		{body: $elm$http$Http$emptyBody, expect: r.expect, headers: _List_Nil, method: 'GET', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
+};
+var $author$project$Blog$Post = F3(
+	function (title, date, fileName) {
+		return {date: date, fileName: fileName, title: title};
+	});
+var $elm$json$Json$Decode$andThen = _Json_andThen;
+var $elm$json$Json$Decode$fail = _Json_fail;
+var $elm$json$Json$Decode$string = _Json_decodeString;
+var $elm$parser$Parser$Advanced$Bad = F2(
+	function (a, b) {
+		return {$: 'Bad', a: a, b: b};
+	});
+var $elm$parser$Parser$Advanced$Good = F3(
+	function (a, b, c) {
+		return {$: 'Good', a: a, b: b, c: c};
+	});
+var $elm$parser$Parser$Advanced$Parser = function (a) {
+	return {$: 'Parser', a: a};
+};
+var $elm$parser$Parser$Advanced$andThen = F2(
+	function (callback, _v0) {
+		var parseA = _v0.a;
+		return $elm$parser$Parser$Advanced$Parser(
+			function (s0) {
+				var _v1 = parseA(s0);
+				if (_v1.$ === 'Bad') {
+					var p = _v1.a;
+					var x = _v1.b;
+					return A2($elm$parser$Parser$Advanced$Bad, p, x);
+				} else {
+					var p1 = _v1.a;
+					var a = _v1.b;
+					var s1 = _v1.c;
+					var _v2 = callback(a);
+					var parseB = _v2.a;
+					var _v3 = parseB(s1);
+					if (_v3.$ === 'Bad') {
+						var p2 = _v3.a;
+						var x = _v3.b;
+						return A2($elm$parser$Parser$Advanced$Bad, p1 || p2, x);
+					} else {
+						var p2 = _v3.a;
+						var b = _v3.b;
+						var s2 = _v3.c;
+						return A3($elm$parser$Parser$Advanced$Good, p1 || p2, b, s2);
+					}
+				}
+			});
+	});
+var $elm$parser$Parser$andThen = $elm$parser$Parser$Advanced$andThen;
+var $elm$parser$Parser$ExpectingEnd = {$: 'ExpectingEnd'};
+var $elm$parser$Parser$Advanced$AddRight = F2(
+	function (a, b) {
+		return {$: 'AddRight', a: a, b: b};
+	});
+var $elm$parser$Parser$Advanced$DeadEnd = F4(
+	function (row, col, problem, contextStack) {
+		return {col: col, contextStack: contextStack, problem: problem, row: row};
+	});
+var $elm$parser$Parser$Advanced$Empty = {$: 'Empty'};
+var $elm$parser$Parser$Advanced$fromState = F2(
+	function (s, x) {
+		return A2(
+			$elm$parser$Parser$Advanced$AddRight,
+			$elm$parser$Parser$Advanced$Empty,
+			A4($elm$parser$Parser$Advanced$DeadEnd, s.row, s.col, x, s.context));
+	});
+var $elm$parser$Parser$Advanced$end = function (x) {
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return _Utils_eq(
+				$elm$core$String$length(s.src),
+				s.offset) ? A3($elm$parser$Parser$Advanced$Good, false, _Utils_Tuple0, s) : A2(
+				$elm$parser$Parser$Advanced$Bad,
+				false,
+				A2($elm$parser$Parser$Advanced$fromState, s, x));
+		});
+};
+var $elm$parser$Parser$end = $elm$parser$Parser$Advanced$end($elm$parser$Parser$ExpectingEnd);
+var $elm$parser$Parser$Advanced$isSubChar = _Parser_isSubChar;
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$parser$Parser$Advanced$chompWhileHelp = F5(
+	function (isGood, offset, row, col, s0) {
+		chompWhileHelp:
+		while (true) {
+			var newOffset = A3($elm$parser$Parser$Advanced$isSubChar, isGood, offset, s0.src);
+			if (_Utils_eq(newOffset, -1)) {
+				return A3(
+					$elm$parser$Parser$Advanced$Good,
+					_Utils_cmp(s0.offset, offset) < 0,
+					_Utils_Tuple0,
+					{col: col, context: s0.context, indent: s0.indent, offset: offset, row: row, src: s0.src});
+			} else {
+				if (_Utils_eq(newOffset, -2)) {
+					var $temp$isGood = isGood,
+						$temp$offset = offset + 1,
+						$temp$row = row + 1,
+						$temp$col = 1,
+						$temp$s0 = s0;
+					isGood = $temp$isGood;
+					offset = $temp$offset;
+					row = $temp$row;
+					col = $temp$col;
+					s0 = $temp$s0;
+					continue chompWhileHelp;
+				} else {
+					var $temp$isGood = isGood,
+						$temp$offset = newOffset,
+						$temp$row = row,
+						$temp$col = col + 1,
+						$temp$s0 = s0;
+					isGood = $temp$isGood;
+					offset = $temp$offset;
+					row = $temp$row;
+					col = $temp$col;
+					s0 = $temp$s0;
+					continue chompWhileHelp;
+				}
+			}
+		}
+	});
+var $elm$parser$Parser$Advanced$chompWhile = function (isGood) {
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return A5($elm$parser$Parser$Advanced$chompWhileHelp, isGood, s.offset, s.row, s.col, s);
+		});
+};
+var $elm$parser$Parser$chompWhile = $elm$parser$Parser$Advanced$chompWhile;
+var $elm$core$Basics$always = F2(
+	function (a, _v0) {
+		return a;
+	});
+var $elm$parser$Parser$Advanced$mapChompedString = F2(
+	function (func, _v0) {
+		var parse = _v0.a;
+		return $elm$parser$Parser$Advanced$Parser(
+			function (s0) {
+				var _v1 = parse(s0);
+				if (_v1.$ === 'Bad') {
+					var p = _v1.a;
+					var x = _v1.b;
+					return A2($elm$parser$Parser$Advanced$Bad, p, x);
+				} else {
+					var p = _v1.a;
+					var a = _v1.b;
+					var s1 = _v1.c;
+					return A3(
+						$elm$parser$Parser$Advanced$Good,
+						p,
+						A2(
+							func,
+							A3($elm$core$String$slice, s0.offset, s1.offset, s0.src),
+							a),
+						s1);
+				}
+			});
+	});
+var $elm$parser$Parser$Advanced$getChompedString = function (parser) {
+	return A2($elm$parser$Parser$Advanced$mapChompedString, $elm$core$Basics$always, parser);
+};
+var $elm$parser$Parser$getChompedString = $elm$parser$Parser$Advanced$getChompedString;
+var $elm$parser$Parser$Problem = function (a) {
+	return {$: 'Problem', a: a};
+};
+var $elm$parser$Parser$Advanced$problem = function (x) {
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return A2(
+				$elm$parser$Parser$Advanced$Bad,
+				false,
+				A2($elm$parser$Parser$Advanced$fromState, s, x));
+		});
+};
+var $elm$parser$Parser$problem = function (msg) {
+	return $elm$parser$Parser$Advanced$problem(
+		$elm$parser$Parser$Problem(msg));
+};
+var $elm$core$Basics$round = _Basics_round;
+var $elm$parser$Parser$Advanced$succeed = function (a) {
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return A3($elm$parser$Parser$Advanced$Good, false, a, s);
+		});
+};
+var $elm$parser$Parser$succeed = $elm$parser$Parser$Advanced$succeed;
+var $elm$core$String$toFloat = _String_toFloat;
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$fractionsOfASecondInMs = A2(
+	$elm$parser$Parser$andThen,
+	function (str) {
+		if ($elm$core$String$length(str) <= 9) {
+			var _v0 = $elm$core$String$toFloat('0.' + str);
+			if (_v0.$ === 'Just') {
+				var floatVal = _v0.a;
+				return $elm$parser$Parser$succeed(
+					$elm$core$Basics$round(floatVal * 1000));
+			} else {
+				return $elm$parser$Parser$problem('Invalid float: \"' + (str + '\"'));
+			}
+		} else {
+			return $elm$parser$Parser$problem(
+				'Expected at most 9 digits, but got ' + $elm$core$String$fromInt(
+					$elm$core$String$length(str)));
+		}
+	},
+	$elm$parser$Parser$getChompedString(
+		$elm$parser$Parser$chompWhile($elm$core$Char$isDigit)));
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$fromParts = F6(
+	function (monthYearDayMs, hour, minute, second, ms, utcOffsetMinutes) {
+		return $elm$time$Time$millisToPosix((((monthYearDayMs + (((hour * 60) * 60) * 1000)) + (((minute - utcOffsetMinutes) * 60) * 1000)) + (second * 1000)) + ms);
+	});
+var $elm$parser$Parser$Advanced$map2 = F3(
+	function (func, _v0, _v1) {
+		var parseA = _v0.a;
+		var parseB = _v1.a;
+		return $elm$parser$Parser$Advanced$Parser(
+			function (s0) {
+				var _v2 = parseA(s0);
+				if (_v2.$ === 'Bad') {
+					var p = _v2.a;
+					var x = _v2.b;
+					return A2($elm$parser$Parser$Advanced$Bad, p, x);
+				} else {
+					var p1 = _v2.a;
+					var a = _v2.b;
+					var s1 = _v2.c;
+					var _v3 = parseB(s1);
+					if (_v3.$ === 'Bad') {
+						var p2 = _v3.a;
+						var x = _v3.b;
+						return A2($elm$parser$Parser$Advanced$Bad, p1 || p2, x);
+					} else {
+						var p2 = _v3.a;
+						var b = _v3.b;
+						var s2 = _v3.c;
+						return A3(
+							$elm$parser$Parser$Advanced$Good,
+							p1 || p2,
+							A2(func, a, b),
+							s2);
+					}
+				}
+			});
+	});
+var $elm$parser$Parser$Advanced$ignorer = F2(
+	function (keepParser, ignoreParser) {
+		return A3($elm$parser$Parser$Advanced$map2, $elm$core$Basics$always, keepParser, ignoreParser);
+	});
+var $elm$parser$Parser$ignorer = $elm$parser$Parser$Advanced$ignorer;
+var $elm$parser$Parser$Advanced$keeper = F2(
+	function (parseFunc, parseArg) {
+		return A3($elm$parser$Parser$Advanced$map2, $elm$core$Basics$apL, parseFunc, parseArg);
+	});
+var $elm$parser$Parser$keeper = $elm$parser$Parser$Advanced$keeper;
+var $elm$parser$Parser$Advanced$Append = F2(
+	function (a, b) {
+		return {$: 'Append', a: a, b: b};
+	});
+var $elm$parser$Parser$Advanced$oneOfHelp = F3(
+	function (s0, bag, parsers) {
+		oneOfHelp:
+		while (true) {
+			if (!parsers.b) {
+				return A2($elm$parser$Parser$Advanced$Bad, false, bag);
+			} else {
+				var parse = parsers.a.a;
+				var remainingParsers = parsers.b;
+				var _v1 = parse(s0);
+				if (_v1.$ === 'Good') {
+					var step = _v1;
+					return step;
+				} else {
+					var step = _v1;
+					var p = step.a;
+					var x = step.b;
+					if (p) {
+						return step;
+					} else {
+						var $temp$s0 = s0,
+							$temp$bag = A2($elm$parser$Parser$Advanced$Append, bag, x),
+							$temp$parsers = remainingParsers;
+						s0 = $temp$s0;
+						bag = $temp$bag;
+						parsers = $temp$parsers;
+						continue oneOfHelp;
+					}
+				}
+			}
+		}
+	});
+var $elm$parser$Parser$Advanced$oneOf = function (parsers) {
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return A3($elm$parser$Parser$Advanced$oneOfHelp, s, $elm$parser$Parser$Advanced$Empty, parsers);
+		});
+};
+var $elm$parser$Parser$oneOf = $elm$parser$Parser$Advanced$oneOf;
+var $elm$parser$Parser$Done = function (a) {
+	return {$: 'Done', a: a};
+};
+var $elm$parser$Parser$Loop = function (a) {
+	return {$: 'Loop', a: a};
+};
+var $elm$core$String$append = _String_append;
+var $elm$parser$Parser$UnexpectedChar = {$: 'UnexpectedChar'};
+var $elm$parser$Parser$Advanced$chompIf = F2(
+	function (isGood, expecting) {
+		return $elm$parser$Parser$Advanced$Parser(
+			function (s) {
+				var newOffset = A3($elm$parser$Parser$Advanced$isSubChar, isGood, s.offset, s.src);
+				return _Utils_eq(newOffset, -1) ? A2(
+					$elm$parser$Parser$Advanced$Bad,
+					false,
+					A2($elm$parser$Parser$Advanced$fromState, s, expecting)) : (_Utils_eq(newOffset, -2) ? A3(
+					$elm$parser$Parser$Advanced$Good,
+					true,
+					_Utils_Tuple0,
+					{col: 1, context: s.context, indent: s.indent, offset: s.offset + 1, row: s.row + 1, src: s.src}) : A3(
+					$elm$parser$Parser$Advanced$Good,
+					true,
+					_Utils_Tuple0,
+					{col: s.col + 1, context: s.context, indent: s.indent, offset: newOffset, row: s.row, src: s.src}));
+			});
+	});
+var $elm$parser$Parser$chompIf = function (isGood) {
+	return A2($elm$parser$Parser$Advanced$chompIf, isGood, $elm$parser$Parser$UnexpectedChar);
+};
+var $elm$parser$Parser$Advanced$loopHelp = F4(
+	function (p, state, callback, s0) {
+		loopHelp:
+		while (true) {
+			var _v0 = callback(state);
+			var parse = _v0.a;
+			var _v1 = parse(s0);
+			if (_v1.$ === 'Good') {
+				var p1 = _v1.a;
+				var step = _v1.b;
+				var s1 = _v1.c;
+				if (step.$ === 'Loop') {
+					var newState = step.a;
+					var $temp$p = p || p1,
+						$temp$state = newState,
+						$temp$callback = callback,
+						$temp$s0 = s1;
+					p = $temp$p;
+					state = $temp$state;
+					callback = $temp$callback;
+					s0 = $temp$s0;
+					continue loopHelp;
+				} else {
+					var result = step.a;
+					return A3($elm$parser$Parser$Advanced$Good, p || p1, result, s1);
+				}
+			} else {
+				var p1 = _v1.a;
+				var x = _v1.b;
+				return A2($elm$parser$Parser$Advanced$Bad, p || p1, x);
+			}
+		}
+	});
+var $elm$parser$Parser$Advanced$loop = F2(
+	function (state, callback) {
+		return $elm$parser$Parser$Advanced$Parser(
+			function (s) {
+				return A4($elm$parser$Parser$Advanced$loopHelp, false, state, callback, s);
+			});
+	});
+var $elm$parser$Parser$Advanced$map = F2(
+	function (func, _v0) {
+		var parse = _v0.a;
+		return $elm$parser$Parser$Advanced$Parser(
+			function (s0) {
+				var _v1 = parse(s0);
+				if (_v1.$ === 'Good') {
+					var p = _v1.a;
+					var a = _v1.b;
+					var s1 = _v1.c;
+					return A3(
+						$elm$parser$Parser$Advanced$Good,
+						p,
+						func(a),
+						s1);
+				} else {
+					var p = _v1.a;
+					var x = _v1.b;
+					return A2($elm$parser$Parser$Advanced$Bad, p, x);
+				}
+			});
+	});
+var $elm$parser$Parser$map = $elm$parser$Parser$Advanced$map;
+var $elm$parser$Parser$Advanced$Done = function (a) {
+	return {$: 'Done', a: a};
+};
+var $elm$parser$Parser$Advanced$Loop = function (a) {
+	return {$: 'Loop', a: a};
+};
+var $elm$parser$Parser$toAdvancedStep = function (step) {
+	if (step.$ === 'Loop') {
+		var s = step.a;
+		return $elm$parser$Parser$Advanced$Loop(s);
+	} else {
+		var a = step.a;
+		return $elm$parser$Parser$Advanced$Done(a);
+	}
+};
+var $elm$parser$Parser$loop = F2(
+	function (state, callback) {
+		return A2(
+			$elm$parser$Parser$Advanced$loop,
+			state,
+			function (s) {
+				return A2(
+					$elm$parser$Parser$map,
+					$elm$parser$Parser$toAdvancedStep,
+					callback(s));
+			});
+	});
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt = function (quantity) {
+	var helper = function (str) {
+		if (_Utils_eq(
+			$elm$core$String$length(str),
+			quantity)) {
+			var _v0 = $elm$core$String$toInt(str);
+			if (_v0.$ === 'Just') {
+				var intVal = _v0.a;
+				return A2(
+					$elm$parser$Parser$map,
+					$elm$parser$Parser$Done,
+					$elm$parser$Parser$succeed(intVal));
+			} else {
+				return $elm$parser$Parser$problem('Invalid integer: \"' + (str + '\"'));
+			}
+		} else {
+			return A2(
+				$elm$parser$Parser$map,
+				function (nextChar) {
+					return $elm$parser$Parser$Loop(
+						A2($elm$core$String$append, str, nextChar));
+				},
+				$elm$parser$Parser$getChompedString(
+					$elm$parser$Parser$chompIf($elm$core$Char$isDigit)));
+		}
+	};
+	return A2($elm$parser$Parser$loop, '', helper);
+};
+var $elm$parser$Parser$ExpectingSymbol = function (a) {
+	return {$: 'ExpectingSymbol', a: a};
+};
+var $elm$parser$Parser$Advanced$Token = F2(
+	function (a, b) {
+		return {$: 'Token', a: a, b: b};
+	});
+var $elm$parser$Parser$Advanced$isSubString = _Parser_isSubString;
+var $elm$core$Basics$not = _Basics_not;
+var $elm$parser$Parser$Advanced$token = function (_v0) {
+	var str = _v0.a;
+	var expecting = _v0.b;
+	var progress = !$elm$core$String$isEmpty(str);
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			var _v1 = A5($elm$parser$Parser$Advanced$isSubString, str, s.offset, s.row, s.col, s.src);
+			var newOffset = _v1.a;
+			var newRow = _v1.b;
+			var newCol = _v1.c;
+			return _Utils_eq(newOffset, -1) ? A2(
+				$elm$parser$Parser$Advanced$Bad,
+				false,
+				A2($elm$parser$Parser$Advanced$fromState, s, expecting)) : A3(
+				$elm$parser$Parser$Advanced$Good,
+				progress,
+				_Utils_Tuple0,
+				{col: newCol, context: s.context, indent: s.indent, offset: newOffset, row: newRow, src: s.src});
+		});
+};
+var $elm$parser$Parser$Advanced$symbol = $elm$parser$Parser$Advanced$token;
+var $elm$parser$Parser$symbol = function (str) {
+	return $elm$parser$Parser$Advanced$symbol(
+		A2(
+			$elm$parser$Parser$Advanced$Token,
+			str,
+			$elm$parser$Parser$ExpectingSymbol(str)));
+};
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$epochYear = 1970;
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay = function (day) {
+	return $elm$parser$Parser$problem(
+		'Invalid day: ' + $elm$core$String$fromInt(day));
+};
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$isLeapYear = function (year) {
+	return (!A2($elm$core$Basics$modBy, 4, year)) && ((!(!A2($elm$core$Basics$modBy, 100, year))) || (!A2($elm$core$Basics$modBy, 400, year)));
+};
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$leapYearsBefore = function (y1) {
+	var y = y1 - 1;
+	return (((y / 4) | 0) - ((y / 100) | 0)) + ((y / 400) | 0);
+};
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$msPerDay = 86400000;
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$msPerYear = 31536000000;
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$yearMonthDay = function (_v0) {
+	var year = _v0.a;
+	var month = _v0.b;
+	var dayInMonth = _v0.c;
+	if (dayInMonth < 0) {
+		return $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth);
+	} else {
+		var succeedWith = function (extraMs) {
+			var yearMs = $rtfeldman$elm_iso8601_date_strings$Iso8601$msPerYear * (year - $rtfeldman$elm_iso8601_date_strings$Iso8601$epochYear);
+			var days = ((month < 3) || (!$rtfeldman$elm_iso8601_date_strings$Iso8601$isLeapYear(year))) ? (dayInMonth - 1) : dayInMonth;
+			var dayMs = $rtfeldman$elm_iso8601_date_strings$Iso8601$msPerDay * (days + ($rtfeldman$elm_iso8601_date_strings$Iso8601$leapYearsBefore(year) - $rtfeldman$elm_iso8601_date_strings$Iso8601$leapYearsBefore($rtfeldman$elm_iso8601_date_strings$Iso8601$epochYear)));
+			return $elm$parser$Parser$succeed((extraMs + yearMs) + dayMs);
+		};
+		switch (month) {
+			case 1:
+				return (dayInMonth > 31) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(0);
+			case 2:
+				return ((dayInMonth > 29) || ((dayInMonth === 29) && (!$rtfeldman$elm_iso8601_date_strings$Iso8601$isLeapYear(year)))) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(2678400000);
+			case 3:
+				return (dayInMonth > 31) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(5097600000);
+			case 4:
+				return (dayInMonth > 30) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(7776000000);
+			case 5:
+				return (dayInMonth > 31) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(10368000000);
+			case 6:
+				return (dayInMonth > 30) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(13046400000);
+			case 7:
+				return (dayInMonth > 31) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(15638400000);
+			case 8:
+				return (dayInMonth > 31) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(18316800000);
+			case 9:
+				return (dayInMonth > 30) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(20995200000);
+			case 10:
+				return (dayInMonth > 31) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(23587200000);
+			case 11:
+				return (dayInMonth > 30) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(26265600000);
+			case 12:
+				return (dayInMonth > 31) ? $rtfeldman$elm_iso8601_date_strings$Iso8601$invalidDay(dayInMonth) : succeedWith(28857600000);
+			default:
+				return $elm$parser$Parser$problem(
+					'Invalid month: \"' + ($elm$core$String$fromInt(month) + '\"'));
+		}
+	}
+};
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$monthYearDayInMs = A2(
+	$elm$parser$Parser$andThen,
+	$rtfeldman$elm_iso8601_date_strings$Iso8601$yearMonthDay,
+	A2(
+		$elm$parser$Parser$keeper,
+		A2(
+			$elm$parser$Parser$keeper,
+			A2(
+				$elm$parser$Parser$keeper,
+				$elm$parser$Parser$succeed(
+					F3(
+						function (year, month, day) {
+							return _Utils_Tuple3(year, month, day);
+						})),
+				$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(4)),
+			$elm$parser$Parser$oneOf(
+				_List_fromArray(
+					[
+						A2(
+						$elm$parser$Parser$keeper,
+						A2(
+							$elm$parser$Parser$ignorer,
+							$elm$parser$Parser$succeed($elm$core$Basics$identity),
+							$elm$parser$Parser$symbol('-')),
+						$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)),
+						$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)
+					]))),
+		$elm$parser$Parser$oneOf(
+			_List_fromArray(
+				[
+					A2(
+					$elm$parser$Parser$keeper,
+					A2(
+						$elm$parser$Parser$ignorer,
+						$elm$parser$Parser$succeed($elm$core$Basics$identity),
+						$elm$parser$Parser$symbol('-')),
+					$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)),
+					$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)
+				]))));
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$utcOffsetInMinutes = function () {
+	var utcOffsetMinutesFromParts = F3(
+		function (multiplier, hours, minutes) {
+			return (multiplier * (hours * 60)) + minutes;
+		});
+	return A2(
+		$elm$parser$Parser$keeper,
+		$elm$parser$Parser$succeed($elm$core$Basics$identity),
+		$elm$parser$Parser$oneOf(
+			_List_fromArray(
+				[
+					A2(
+					$elm$parser$Parser$map,
+					function (_v0) {
+						return 0;
+					},
+					$elm$parser$Parser$symbol('Z')),
+					A2(
+					$elm$parser$Parser$keeper,
+					A2(
+						$elm$parser$Parser$keeper,
+						A2(
+							$elm$parser$Parser$keeper,
+							$elm$parser$Parser$succeed(utcOffsetMinutesFromParts),
+							$elm$parser$Parser$oneOf(
+								_List_fromArray(
+									[
+										A2(
+										$elm$parser$Parser$map,
+										function (_v1) {
+											return 1;
+										},
+										$elm$parser$Parser$symbol('+')),
+										A2(
+										$elm$parser$Parser$map,
+										function (_v2) {
+											return -1;
+										},
+										$elm$parser$Parser$symbol('-'))
+									]))),
+						$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)),
+					$elm$parser$Parser$oneOf(
+						_List_fromArray(
+							[
+								A2(
+								$elm$parser$Parser$keeper,
+								A2(
+									$elm$parser$Parser$ignorer,
+									$elm$parser$Parser$succeed($elm$core$Basics$identity),
+									$elm$parser$Parser$symbol(':')),
+								$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)),
+								$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2),
+								$elm$parser$Parser$succeed(0)
+							]))),
+					A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed(0),
+					$elm$parser$Parser$end)
+				])));
+}();
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$iso8601 = A2(
+	$elm$parser$Parser$andThen,
+	function (datePart) {
+		return $elm$parser$Parser$oneOf(
+			_List_fromArray(
+				[
+					A2(
+					$elm$parser$Parser$keeper,
+					A2(
+						$elm$parser$Parser$keeper,
+						A2(
+							$elm$parser$Parser$keeper,
+							A2(
+								$elm$parser$Parser$keeper,
+								A2(
+									$elm$parser$Parser$keeper,
+									A2(
+										$elm$parser$Parser$ignorer,
+										$elm$parser$Parser$succeed(
+											$rtfeldman$elm_iso8601_date_strings$Iso8601$fromParts(datePart)),
+										$elm$parser$Parser$symbol('T')),
+									$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)),
+								$elm$parser$Parser$oneOf(
+									_List_fromArray(
+										[
+											A2(
+											$elm$parser$Parser$keeper,
+											A2(
+												$elm$parser$Parser$ignorer,
+												$elm$parser$Parser$succeed($elm$core$Basics$identity),
+												$elm$parser$Parser$symbol(':')),
+											$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)),
+											$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)
+										]))),
+							$elm$parser$Parser$oneOf(
+								_List_fromArray(
+									[
+										A2(
+										$elm$parser$Parser$keeper,
+										A2(
+											$elm$parser$Parser$ignorer,
+											$elm$parser$Parser$succeed($elm$core$Basics$identity),
+											$elm$parser$Parser$symbol(':')),
+										$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2)),
+										$rtfeldman$elm_iso8601_date_strings$Iso8601$paddedInt(2),
+										$elm$parser$Parser$succeed(0)
+									]))),
+						$elm$parser$Parser$oneOf(
+							_List_fromArray(
+								[
+									A2(
+									$elm$parser$Parser$keeper,
+									A2(
+										$elm$parser$Parser$ignorer,
+										$elm$parser$Parser$succeed($elm$core$Basics$identity),
+										$elm$parser$Parser$symbol('.')),
+									$rtfeldman$elm_iso8601_date_strings$Iso8601$fractionsOfASecondInMs),
+									$elm$parser$Parser$succeed(0)
+								]))),
+					A2($elm$parser$Parser$ignorer, $rtfeldman$elm_iso8601_date_strings$Iso8601$utcOffsetInMinutes, $elm$parser$Parser$end)),
+					A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed(
+						A6($rtfeldman$elm_iso8601_date_strings$Iso8601$fromParts, datePart, 0, 0, 0, 0, 0)),
+					$elm$parser$Parser$end)
+				]));
+	},
+	$rtfeldman$elm_iso8601_date_strings$Iso8601$monthYearDayInMs);
+var $elm$parser$Parser$DeadEnd = F3(
+	function (row, col, problem) {
+		return {col: col, problem: problem, row: row};
+	});
+var $elm$parser$Parser$problemToDeadEnd = function (p) {
+	return A3($elm$parser$Parser$DeadEnd, p.row, p.col, p.problem);
+};
+var $elm$parser$Parser$Advanced$bagToList = F2(
+	function (bag, list) {
+		bagToList:
+		while (true) {
+			switch (bag.$) {
+				case 'Empty':
+					return list;
+				case 'AddRight':
+					var bag1 = bag.a;
+					var x = bag.b;
+					var $temp$bag = bag1,
+						$temp$list = A2($elm$core$List$cons, x, list);
+					bag = $temp$bag;
+					list = $temp$list;
+					continue bagToList;
+				default:
+					var bag1 = bag.a;
+					var bag2 = bag.b;
+					var $temp$bag = bag1,
+						$temp$list = A2($elm$parser$Parser$Advanced$bagToList, bag2, list);
+					bag = $temp$bag;
+					list = $temp$list;
+					continue bagToList;
+			}
+		}
+	});
+var $elm$parser$Parser$Advanced$run = F2(
+	function (_v0, src) {
+		var parse = _v0.a;
+		var _v1 = parse(
+			{col: 1, context: _List_Nil, indent: 1, offset: 0, row: 1, src: src});
+		if (_v1.$ === 'Good') {
+			var value = _v1.b;
+			return $elm$core$Result$Ok(value);
+		} else {
+			var bag = _v1.b;
+			return $elm$core$Result$Err(
+				A2($elm$parser$Parser$Advanced$bagToList, bag, _List_Nil));
+		}
+	});
+var $elm$parser$Parser$run = F2(
+	function (parser, source) {
+		var _v0 = A2($elm$parser$Parser$Advanced$run, parser, source);
+		if (_v0.$ === 'Ok') {
+			var a = _v0.a;
+			return $elm$core$Result$Ok(a);
+		} else {
+			var problems = _v0.a;
+			return $elm$core$Result$Err(
+				A2($elm$core$List$map, $elm$parser$Parser$problemToDeadEnd, problems));
+		}
+	});
+var $rtfeldman$elm_iso8601_date_strings$Iso8601$toTime = function (str) {
+	return A2($elm$parser$Parser$run, $rtfeldman$elm_iso8601_date_strings$Iso8601$iso8601, str);
+};
+var $elm_community$json_extra$Json$Decode$Extra$datetime = A2(
+	$elm$json$Json$Decode$andThen,
+	function (dateString) {
+		var _v0 = $rtfeldman$elm_iso8601_date_strings$Iso8601$toTime(dateString);
+		if (_v0.$ === 'Ok') {
+			var v = _v0.a;
+			return $elm$json$Json$Decode$succeed(v);
+		} else {
+			return $elm$json$Json$Decode$fail('Expecting an ISO-8601 formatted date+time string');
+		}
+	},
+	$elm$json$Json$Decode$string);
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$map3 = _Json_map3;
+var $author$project$Blog$postsDecoder = $elm$json$Json$Decode$list(
+	A4(
+		$elm$json$Json$Decode$map3,
+		$author$project$Blog$Post,
+		A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
+		A2($elm$json$Json$Decode$field, 'date', $elm_community$json_extra$Json$Decode$Extra$datetime),
+		A2($elm$json$Json$Decode$field, 'fileName', $elm$json$Json$Decode$string)));
+var $author$project$Blog$fetchPosts = $elm$http$Http$get(
+	{
+		expect: A2(
+			$elm$http$Http$expectJson,
+			function (result) {
+				if (result.$ === 'Ok') {
+					var posts = result.a;
+					return $author$project$Blog$LoadPosts(posts);
+				} else {
+					var error = result.a;
+					return $author$project$Blog$LoadPostsError(error);
+				}
+			},
+			$author$project$Blog$postsDecoder),
+		url: './blog/posts.json'
+	});
+var $elm$core$Result$map = F2(
+	function (func, ra) {
+		if (ra.$ === 'Ok') {
+			var a = ra.a;
+			return $elm$core$Result$Ok(
+				func(a));
+		} else {
+			var e = ra.a;
+			return $elm$core$Result$Err(e);
+		}
+	});
+var $hecrj$html_parser$Html$Parser$Element = F3(
+	function (a, b, c) {
+		return {$: 'Element', a: a, b: b, c: c};
+	});
+var $elm$parser$Parser$Advanced$backtrackable = function (_v0) {
+	var parse = _v0.a;
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s0) {
+			var _v1 = parse(s0);
+			if (_v1.$ === 'Bad') {
+				var x = _v1.b;
+				return A2($elm$parser$Parser$Advanced$Bad, false, x);
+			} else {
+				var a = _v1.b;
+				var s1 = _v1.c;
+				return A3($elm$parser$Parser$Advanced$Good, false, a, s1);
+			}
+		});
+};
+var $elm$parser$Parser$backtrackable = $elm$parser$Parser$Advanced$backtrackable;
+var $hecrj$html_parser$Html$Parser$chompOneOrMore = function (fn) {
+	return A2(
+		$elm$parser$Parser$ignorer,
+		$elm$parser$Parser$chompIf(fn),
+		$elm$parser$Parser$chompWhile(fn));
+};
+var $hecrj$html_parser$Html$Parser$isSpaceCharacter = function (c) {
+	return _Utils_eq(
+		c,
+		_Utils_chr(' ')) || (_Utils_eq(
+		c,
+		_Utils_chr('\t')) || (_Utils_eq(
+		c,
+		_Utils_chr('\n')) || (_Utils_eq(
+		c,
+		_Utils_chr('\u000D')) || (_Utils_eq(
+		c,
+		_Utils_chr('\u000C')) || _Utils_eq(
+		c,
+		_Utils_chr('\u00A0'))))));
+};
+var $elm$core$String$toLower = _String_toLower;
+var $hecrj$html_parser$Html$Parser$closingTag = function (name) {
+	var chompName = A2(
+		$elm$parser$Parser$andThen,
+		function (closingName) {
+			return _Utils_eq(
+				$elm$core$String$toLower(closingName),
+				name) ? $elm$parser$Parser$succeed(_Utils_Tuple0) : $elm$parser$Parser$problem('closing tag does not match opening tag: ' + name);
+		},
+		$elm$parser$Parser$getChompedString(
+			$hecrj$html_parser$Html$Parser$chompOneOrMore(
+				function (c) {
+					return (!$hecrj$html_parser$Html$Parser$isSpaceCharacter(c)) && (!_Utils_eq(
+						c,
+						_Utils_chr('>')));
+				})));
+	return A2(
+		$elm$parser$Parser$ignorer,
+		A2(
+			$elm$parser$Parser$ignorer,
+			A2(
+				$elm$parser$Parser$ignorer,
+				A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$chompIf(
+						$elm$core$Basics$eq(
+							_Utils_chr('<'))),
+					$elm$parser$Parser$chompIf(
+						$elm$core$Basics$eq(
+							_Utils_chr('/')))),
+				chompName),
+			$elm$parser$Parser$chompWhile($hecrj$html_parser$Html$Parser$isSpaceCharacter)),
+		$elm$parser$Parser$chompIf(
+			$elm$core$Basics$eq(
+				_Utils_chr('>'))));
+};
+var $hecrj$html_parser$Html$Parser$Comment = function (a) {
+	return {$: 'Comment', a: a};
+};
+var $elm$parser$Parser$Advanced$findSubString = _Parser_findSubString;
+var $elm$parser$Parser$Advanced$fromInfo = F4(
+	function (row, col, x, context) {
+		return A2(
+			$elm$parser$Parser$Advanced$AddRight,
+			$elm$parser$Parser$Advanced$Empty,
+			A4($elm$parser$Parser$Advanced$DeadEnd, row, col, x, context));
+	});
+var $elm$parser$Parser$Advanced$chompUntil = function (_v0) {
+	var str = _v0.a;
+	var expecting = _v0.b;
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			var _v1 = A5($elm$parser$Parser$Advanced$findSubString, str, s.offset, s.row, s.col, s.src);
+			var newOffset = _v1.a;
+			var newRow = _v1.b;
+			var newCol = _v1.c;
+			return _Utils_eq(newOffset, -1) ? A2(
+				$elm$parser$Parser$Advanced$Bad,
+				false,
+				A4($elm$parser$Parser$Advanced$fromInfo, newRow, newCol, expecting, s.context)) : A3(
+				$elm$parser$Parser$Advanced$Good,
+				_Utils_cmp(s.offset, newOffset) < 0,
+				_Utils_Tuple0,
+				{col: newCol, context: s.context, indent: s.indent, offset: newOffset, row: newRow, src: s.src});
+		});
+};
+var $elm$parser$Parser$Expecting = function (a) {
+	return {$: 'Expecting', a: a};
+};
+var $elm$parser$Parser$toToken = function (str) {
+	return A2(
+		$elm$parser$Parser$Advanced$Token,
+		str,
+		$elm$parser$Parser$Expecting(str));
+};
+var $elm$parser$Parser$chompUntil = function (str) {
+	return $elm$parser$Parser$Advanced$chompUntil(
+		$elm$parser$Parser$toToken(str));
+};
+var $elm$parser$Parser$token = function (str) {
+	return $elm$parser$Parser$Advanced$token(
+		$elm$parser$Parser$toToken(str));
+};
+var $hecrj$html_parser$Html$Parser$commentString = A2(
+	$elm$parser$Parser$keeper,
+	A2(
+		$elm$parser$Parser$ignorer,
+		A2(
+			$elm$parser$Parser$ignorer,
+			$elm$parser$Parser$succeed($elm$core$Basics$identity),
+			$elm$parser$Parser$token('<!')),
+		$elm$parser$Parser$token('--')),
+	A2(
+		$elm$parser$Parser$ignorer,
+		$elm$parser$Parser$getChompedString(
+			$elm$parser$Parser$chompUntil('-->')),
+		$elm$parser$Parser$token('-->')));
+var $hecrj$html_parser$Html$Parser$comment = A2($elm$parser$Parser$map, $hecrj$html_parser$Html$Parser$Comment, $hecrj$html_parser$Html$Parser$commentString);
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var $elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			$elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var $hecrj$html_parser$Html$Parser$voidElements = _List_fromArray(
+	['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+var $hecrj$html_parser$Html$Parser$isVoidElement = function (name) {
+	return A2($elm$core$List$member, name, $hecrj$html_parser$Html$Parser$voidElements);
+};
+var $hecrj$html_parser$Html$Parser$many = function (parser_) {
+	return A2(
+		$elm$parser$Parser$loop,
+		_List_Nil,
+		function (list) {
+			return $elm$parser$Parser$oneOf(
+				_List_fromArray(
+					[
+						A2(
+						$elm$parser$Parser$map,
+						function (_new) {
+							return $elm$parser$Parser$Loop(
+								A2($elm$core$List$cons, _new, list));
+						},
+						parser_),
+						$elm$parser$Parser$succeed(
+						$elm$parser$Parser$Done(
+							$elm$core$List$reverse(list)))
+					]));
+		});
+};
+var $elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
+var $hecrj$html_parser$Html$Parser$isTagAttributeCharacter = function (c) {
+	return (!$hecrj$html_parser$Html$Parser$isSpaceCharacter(c)) && ((!_Utils_eq(
+		c,
+		_Utils_chr('\"'))) && ((!_Utils_eq(
+		c,
+		_Utils_chr('\''))) && ((!_Utils_eq(
+		c,
+		_Utils_chr('>'))) && ((!_Utils_eq(
+		c,
+		_Utils_chr('/'))) && (!_Utils_eq(
+		c,
+		_Utils_chr('=')))))));
+};
+var $hecrj$html_parser$Html$Parser$tagAttributeName = A2(
+	$elm$parser$Parser$map,
+	$elm$core$String$toLower,
+	$elm$parser$Parser$getChompedString(
+		$hecrj$html_parser$Html$Parser$chompOneOrMore($hecrj$html_parser$Html$Parser$isTagAttributeCharacter)));
+var $hecrj$html_parser$Html$Parser$chompSemicolon = $elm$parser$Parser$chompIf(
+	$elm$core$Basics$eq(
+		_Utils_chr(';')));
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $hecrj$html_parser$Html$Parser$NamedCharacterReferences$dict = $elm$core$Dict$fromList(
+	_List_fromArray(
+		[
+			_Utils_Tuple2('Aacute', 'Á'),
+			_Utils_Tuple2('aacute', 'á'),
+			_Utils_Tuple2('Abreve', 'Ă'),
+			_Utils_Tuple2('abreve', 'ă'),
+			_Utils_Tuple2('ac', '∾'),
+			_Utils_Tuple2('acd', '∿'),
+			_Utils_Tuple2('acE', '∾̳'),
+			_Utils_Tuple2('Acirc', 'Â'),
+			_Utils_Tuple2('acirc', 'â'),
+			_Utils_Tuple2('acute', '´'),
+			_Utils_Tuple2('Acy', 'А'),
+			_Utils_Tuple2('acy', 'а'),
+			_Utils_Tuple2('AElig', 'Æ'),
+			_Utils_Tuple2('aelig', 'æ'),
+			_Utils_Tuple2('af', '\u2061'),
+			_Utils_Tuple2('Afr', '\uD835\uDD04'),
+			_Utils_Tuple2('afr', '\uD835\uDD1E'),
+			_Utils_Tuple2('Agrave', 'À'),
+			_Utils_Tuple2('agrave', 'à'),
+			_Utils_Tuple2('alefsym', 'ℵ'),
+			_Utils_Tuple2('aleph', 'ℵ'),
+			_Utils_Tuple2('Alpha', 'Α'),
+			_Utils_Tuple2('alpha', 'α'),
+			_Utils_Tuple2('Amacr', 'Ā'),
+			_Utils_Tuple2('amacr', 'ā'),
+			_Utils_Tuple2('amalg', '⨿'),
+			_Utils_Tuple2('amp', '&'),
+			_Utils_Tuple2('AMP', '&'),
+			_Utils_Tuple2('andand', '⩕'),
+			_Utils_Tuple2('And', '⩓'),
+			_Utils_Tuple2('and', '∧'),
+			_Utils_Tuple2('andd', '⩜'),
+			_Utils_Tuple2('andslope', '⩘'),
+			_Utils_Tuple2('andv', '⩚'),
+			_Utils_Tuple2('ang', '∠'),
+			_Utils_Tuple2('ange', '⦤'),
+			_Utils_Tuple2('angle', '∠'),
+			_Utils_Tuple2('angmsdaa', '⦨'),
+			_Utils_Tuple2('angmsdab', '⦩'),
+			_Utils_Tuple2('angmsdac', '⦪'),
+			_Utils_Tuple2('angmsdad', '⦫'),
+			_Utils_Tuple2('angmsdae', '⦬'),
+			_Utils_Tuple2('angmsdaf', '⦭'),
+			_Utils_Tuple2('angmsdag', '⦮'),
+			_Utils_Tuple2('angmsdah', '⦯'),
+			_Utils_Tuple2('angmsd', '∡'),
+			_Utils_Tuple2('angrt', '∟'),
+			_Utils_Tuple2('angrtvb', '⊾'),
+			_Utils_Tuple2('angrtvbd', '⦝'),
+			_Utils_Tuple2('angsph', '∢'),
+			_Utils_Tuple2('angst', 'Å'),
+			_Utils_Tuple2('angzarr', '⍼'),
+			_Utils_Tuple2('Aogon', 'Ą'),
+			_Utils_Tuple2('aogon', 'ą'),
+			_Utils_Tuple2('Aopf', '\uD835\uDD38'),
+			_Utils_Tuple2('aopf', '\uD835\uDD52'),
+			_Utils_Tuple2('apacir', '⩯'),
+			_Utils_Tuple2('ap', '≈'),
+			_Utils_Tuple2('apE', '⩰'),
+			_Utils_Tuple2('ape', '≊'),
+			_Utils_Tuple2('apid', '≋'),
+			_Utils_Tuple2('apos', '\''),
+			_Utils_Tuple2('ApplyFunction', '\u2061'),
+			_Utils_Tuple2('approx', '≈'),
+			_Utils_Tuple2('approxeq', '≊'),
+			_Utils_Tuple2('Aring', 'Å'),
+			_Utils_Tuple2('aring', 'å'),
+			_Utils_Tuple2('Ascr', '\uD835\uDC9C'),
+			_Utils_Tuple2('ascr', '\uD835\uDCB6'),
+			_Utils_Tuple2('Assign', '≔'),
+			_Utils_Tuple2('ast', '*'),
+			_Utils_Tuple2('asymp', '≈'),
+			_Utils_Tuple2('asympeq', '≍'),
+			_Utils_Tuple2('Atilde', 'Ã'),
+			_Utils_Tuple2('atilde', 'ã'),
+			_Utils_Tuple2('Auml', 'Ä'),
+			_Utils_Tuple2('auml', 'ä'),
+			_Utils_Tuple2('awconint', '∳'),
+			_Utils_Tuple2('awint', '⨑'),
+			_Utils_Tuple2('backcong', '≌'),
+			_Utils_Tuple2('backepsilon', '϶'),
+			_Utils_Tuple2('backprime', '‵'),
+			_Utils_Tuple2('backsim', '∽'),
+			_Utils_Tuple2('backsimeq', '⋍'),
+			_Utils_Tuple2('Backslash', '∖'),
+			_Utils_Tuple2('Barv', '⫧'),
+			_Utils_Tuple2('barvee', '⊽'),
+			_Utils_Tuple2('barwed', '⌅'),
+			_Utils_Tuple2('Barwed', '⌆'),
+			_Utils_Tuple2('barwedge', '⌅'),
+			_Utils_Tuple2('bbrk', '⎵'),
+			_Utils_Tuple2('bbrktbrk', '⎶'),
+			_Utils_Tuple2('bcong', '≌'),
+			_Utils_Tuple2('Bcy', 'Б'),
+			_Utils_Tuple2('bcy', 'б'),
+			_Utils_Tuple2('bdquo', '„'),
+			_Utils_Tuple2('becaus', '∵'),
+			_Utils_Tuple2('because', '∵'),
+			_Utils_Tuple2('Because', '∵'),
+			_Utils_Tuple2('bemptyv', '⦰'),
+			_Utils_Tuple2('bepsi', '϶'),
+			_Utils_Tuple2('bernou', 'ℬ'),
+			_Utils_Tuple2('Bernoullis', 'ℬ'),
+			_Utils_Tuple2('Beta', 'Β'),
+			_Utils_Tuple2('beta', 'β'),
+			_Utils_Tuple2('beth', 'ℶ'),
+			_Utils_Tuple2('between', '≬'),
+			_Utils_Tuple2('Bfr', '\uD835\uDD05'),
+			_Utils_Tuple2('bfr', '\uD835\uDD1F'),
+			_Utils_Tuple2('bigcap', '⋂'),
+			_Utils_Tuple2('bigcirc', '◯'),
+			_Utils_Tuple2('bigcup', '⋃'),
+			_Utils_Tuple2('bigodot', '⨀'),
+			_Utils_Tuple2('bigoplus', '⨁'),
+			_Utils_Tuple2('bigotimes', '⨂'),
+			_Utils_Tuple2('bigsqcup', '⨆'),
+			_Utils_Tuple2('bigstar', '★'),
+			_Utils_Tuple2('bigtriangledown', '▽'),
+			_Utils_Tuple2('bigtriangleup', '△'),
+			_Utils_Tuple2('biguplus', '⨄'),
+			_Utils_Tuple2('bigvee', '⋁'),
+			_Utils_Tuple2('bigwedge', '⋀'),
+			_Utils_Tuple2('bkarow', '⤍'),
+			_Utils_Tuple2('blacklozenge', '⧫'),
+			_Utils_Tuple2('blacksquare', '▪'),
+			_Utils_Tuple2('blacktriangle', '▴'),
+			_Utils_Tuple2('blacktriangledown', '▾'),
+			_Utils_Tuple2('blacktriangleleft', '◂'),
+			_Utils_Tuple2('blacktriangleright', '▸'),
+			_Utils_Tuple2('blank', '␣'),
+			_Utils_Tuple2('blk12', '▒'),
+			_Utils_Tuple2('blk14', '░'),
+			_Utils_Tuple2('blk34', '▓'),
+			_Utils_Tuple2('block', '█'),
+			_Utils_Tuple2('bne', '=⃥'),
+			_Utils_Tuple2('bnequiv', '≡⃥'),
+			_Utils_Tuple2('bNot', '⫭'),
+			_Utils_Tuple2('bnot', '⌐'),
+			_Utils_Tuple2('Bopf', '\uD835\uDD39'),
+			_Utils_Tuple2('bopf', '\uD835\uDD53'),
+			_Utils_Tuple2('bot', '⊥'),
+			_Utils_Tuple2('bottom', '⊥'),
+			_Utils_Tuple2('bowtie', '⋈'),
+			_Utils_Tuple2('boxbox', '⧉'),
+			_Utils_Tuple2('boxdl', '┐'),
+			_Utils_Tuple2('boxdL', '╕'),
+			_Utils_Tuple2('boxDl', '╖'),
+			_Utils_Tuple2('boxDL', '╗'),
+			_Utils_Tuple2('boxdr', '┌'),
+			_Utils_Tuple2('boxdR', '╒'),
+			_Utils_Tuple2('boxDr', '╓'),
+			_Utils_Tuple2('boxDR', '╔'),
+			_Utils_Tuple2('boxh', '─'),
+			_Utils_Tuple2('boxH', '═'),
+			_Utils_Tuple2('boxhd', '┬'),
+			_Utils_Tuple2('boxHd', '╤'),
+			_Utils_Tuple2('boxhD', '╥'),
+			_Utils_Tuple2('boxHD', '╦'),
+			_Utils_Tuple2('boxhu', '┴'),
+			_Utils_Tuple2('boxHu', '╧'),
+			_Utils_Tuple2('boxhU', '╨'),
+			_Utils_Tuple2('boxHU', '╩'),
+			_Utils_Tuple2('boxminus', '⊟'),
+			_Utils_Tuple2('boxplus', '⊞'),
+			_Utils_Tuple2('boxtimes', '⊠'),
+			_Utils_Tuple2('boxul', '┘'),
+			_Utils_Tuple2('boxuL', '╛'),
+			_Utils_Tuple2('boxUl', '╜'),
+			_Utils_Tuple2('boxUL', '╝'),
+			_Utils_Tuple2('boxur', '└'),
+			_Utils_Tuple2('boxuR', '╘'),
+			_Utils_Tuple2('boxUr', '╙'),
+			_Utils_Tuple2('boxUR', '╚'),
+			_Utils_Tuple2('boxv', '│'),
+			_Utils_Tuple2('boxV', '║'),
+			_Utils_Tuple2('boxvh', '┼'),
+			_Utils_Tuple2('boxvH', '╪'),
+			_Utils_Tuple2('boxVh', '╫'),
+			_Utils_Tuple2('boxVH', '╬'),
+			_Utils_Tuple2('boxvl', '┤'),
+			_Utils_Tuple2('boxvL', '╡'),
+			_Utils_Tuple2('boxVl', '╢'),
+			_Utils_Tuple2('boxVL', '╣'),
+			_Utils_Tuple2('boxvr', '├'),
+			_Utils_Tuple2('boxvR', '╞'),
+			_Utils_Tuple2('boxVr', '╟'),
+			_Utils_Tuple2('boxVR', '╠'),
+			_Utils_Tuple2('bprime', '‵'),
+			_Utils_Tuple2('breve', '˘'),
+			_Utils_Tuple2('Breve', '˘'),
+			_Utils_Tuple2('brvbar', '¦'),
+			_Utils_Tuple2('bscr', '\uD835\uDCB7'),
+			_Utils_Tuple2('Bscr', 'ℬ'),
+			_Utils_Tuple2('bsemi', '⁏'),
+			_Utils_Tuple2('bsim', '∽'),
+			_Utils_Tuple2('bsime', '⋍'),
+			_Utils_Tuple2('bsolb', '⧅'),
+			_Utils_Tuple2('bsol', '\\'),
+			_Utils_Tuple2('bsolhsub', '⟈'),
+			_Utils_Tuple2('bull', '•'),
+			_Utils_Tuple2('bullet', '•'),
+			_Utils_Tuple2('bump', '≎'),
+			_Utils_Tuple2('bumpE', '⪮'),
+			_Utils_Tuple2('bumpe', '≏'),
+			_Utils_Tuple2('Bumpeq', '≎'),
+			_Utils_Tuple2('bumpeq', '≏'),
+			_Utils_Tuple2('Cacute', 'Ć'),
+			_Utils_Tuple2('cacute', 'ć'),
+			_Utils_Tuple2('capand', '⩄'),
+			_Utils_Tuple2('capbrcup', '⩉'),
+			_Utils_Tuple2('capcap', '⩋'),
+			_Utils_Tuple2('cap', '∩'),
+			_Utils_Tuple2('Cap', '⋒'),
+			_Utils_Tuple2('capcup', '⩇'),
+			_Utils_Tuple2('capdot', '⩀'),
+			_Utils_Tuple2('CapitalDifferentialD', 'ⅅ'),
+			_Utils_Tuple2('caps', '∩︀'),
+			_Utils_Tuple2('caret', '⁁'),
+			_Utils_Tuple2('caron', 'ˇ'),
+			_Utils_Tuple2('Cayleys', 'ℭ'),
+			_Utils_Tuple2('ccaps', '⩍'),
+			_Utils_Tuple2('Ccaron', 'Č'),
+			_Utils_Tuple2('ccaron', 'č'),
+			_Utils_Tuple2('Ccedil', 'Ç'),
+			_Utils_Tuple2('ccedil', 'ç'),
+			_Utils_Tuple2('Ccirc', 'Ĉ'),
+			_Utils_Tuple2('ccirc', 'ĉ'),
+			_Utils_Tuple2('Cconint', '∰'),
+			_Utils_Tuple2('ccups', '⩌'),
+			_Utils_Tuple2('ccupssm', '⩐'),
+			_Utils_Tuple2('Cdot', 'Ċ'),
+			_Utils_Tuple2('cdot', 'ċ'),
+			_Utils_Tuple2('cedil', '¸'),
+			_Utils_Tuple2('Cedilla', '¸'),
+			_Utils_Tuple2('cemptyv', '⦲'),
+			_Utils_Tuple2('cent', '¢'),
+			_Utils_Tuple2('centerdot', '·'),
+			_Utils_Tuple2('CenterDot', '·'),
+			_Utils_Tuple2('cfr', '\uD835\uDD20'),
+			_Utils_Tuple2('Cfr', 'ℭ'),
+			_Utils_Tuple2('CHcy', 'Ч'),
+			_Utils_Tuple2('chcy', 'ч'),
+			_Utils_Tuple2('check', '✓'),
+			_Utils_Tuple2('checkmark', '✓'),
+			_Utils_Tuple2('Chi', 'Χ'),
+			_Utils_Tuple2('chi', 'χ'),
+			_Utils_Tuple2('circ', 'ˆ'),
+			_Utils_Tuple2('circeq', '≗'),
+			_Utils_Tuple2('circlearrowleft', '↺'),
+			_Utils_Tuple2('circlearrowright', '↻'),
+			_Utils_Tuple2('circledast', '⊛'),
+			_Utils_Tuple2('circledcirc', '⊚'),
+			_Utils_Tuple2('circleddash', '⊝'),
+			_Utils_Tuple2('CircleDot', '⊙'),
+			_Utils_Tuple2('circledR', '®'),
+			_Utils_Tuple2('circledS', 'Ⓢ'),
+			_Utils_Tuple2('CircleMinus', '⊖'),
+			_Utils_Tuple2('CirclePlus', '⊕'),
+			_Utils_Tuple2('CircleTimes', '⊗'),
+			_Utils_Tuple2('cir', '○'),
+			_Utils_Tuple2('cirE', '⧃'),
+			_Utils_Tuple2('cire', '≗'),
+			_Utils_Tuple2('cirfnint', '⨐'),
+			_Utils_Tuple2('cirmid', '⫯'),
+			_Utils_Tuple2('cirscir', '⧂'),
+			_Utils_Tuple2('ClockwiseContourIntegral', '∲'),
+			_Utils_Tuple2('CloseCurlyDoubleQuote', '”'),
+			_Utils_Tuple2('CloseCurlyQuote', '’'),
+			_Utils_Tuple2('clubs', '♣'),
+			_Utils_Tuple2('clubsuit', '♣'),
+			_Utils_Tuple2('colon', ':'),
+			_Utils_Tuple2('Colon', '∷'),
+			_Utils_Tuple2('Colone', '⩴'),
+			_Utils_Tuple2('colone', '≔'),
+			_Utils_Tuple2('coloneq', '≔'),
+			_Utils_Tuple2('comma', ','),
+			_Utils_Tuple2('commat', '@'),
+			_Utils_Tuple2('comp', '∁'),
+			_Utils_Tuple2('compfn', '∘'),
+			_Utils_Tuple2('complement', '∁'),
+			_Utils_Tuple2('complexes', 'ℂ'),
+			_Utils_Tuple2('cong', '≅'),
+			_Utils_Tuple2('congdot', '⩭'),
+			_Utils_Tuple2('Congruent', '≡'),
+			_Utils_Tuple2('conint', '∮'),
+			_Utils_Tuple2('Conint', '∯'),
+			_Utils_Tuple2('ContourIntegral', '∮'),
+			_Utils_Tuple2('copf', '\uD835\uDD54'),
+			_Utils_Tuple2('Copf', 'ℂ'),
+			_Utils_Tuple2('coprod', '∐'),
+			_Utils_Tuple2('Coproduct', '∐'),
+			_Utils_Tuple2('copy', '©'),
+			_Utils_Tuple2('COPY', '©'),
+			_Utils_Tuple2('copysr', '℗'),
+			_Utils_Tuple2('CounterClockwiseContourIntegral', '∳'),
+			_Utils_Tuple2('crarr', '↵'),
+			_Utils_Tuple2('cross', '✗'),
+			_Utils_Tuple2('Cross', '⨯'),
+			_Utils_Tuple2('Cscr', '\uD835\uDC9E'),
+			_Utils_Tuple2('cscr', '\uD835\uDCB8'),
+			_Utils_Tuple2('csub', '⫏'),
+			_Utils_Tuple2('csube', '⫑'),
+			_Utils_Tuple2('csup', '⫐'),
+			_Utils_Tuple2('csupe', '⫒'),
+			_Utils_Tuple2('ctdot', '⋯'),
+			_Utils_Tuple2('cudarrl', '⤸'),
+			_Utils_Tuple2('cudarrr', '⤵'),
+			_Utils_Tuple2('cuepr', '⋞'),
+			_Utils_Tuple2('cuesc', '⋟'),
+			_Utils_Tuple2('cularr', '↶'),
+			_Utils_Tuple2('cularrp', '⤽'),
+			_Utils_Tuple2('cupbrcap', '⩈'),
+			_Utils_Tuple2('cupcap', '⩆'),
+			_Utils_Tuple2('CupCap', '≍'),
+			_Utils_Tuple2('cup', '∪'),
+			_Utils_Tuple2('Cup', '⋓'),
+			_Utils_Tuple2('cupcup', '⩊'),
+			_Utils_Tuple2('cupdot', '⊍'),
+			_Utils_Tuple2('cupor', '⩅'),
+			_Utils_Tuple2('cups', '∪︀'),
+			_Utils_Tuple2('curarr', '↷'),
+			_Utils_Tuple2('curarrm', '⤼'),
+			_Utils_Tuple2('curlyeqprec', '⋞'),
+			_Utils_Tuple2('curlyeqsucc', '⋟'),
+			_Utils_Tuple2('curlyvee', '⋎'),
+			_Utils_Tuple2('curlywedge', '⋏'),
+			_Utils_Tuple2('curren', '¤'),
+			_Utils_Tuple2('curvearrowleft', '↶'),
+			_Utils_Tuple2('curvearrowright', '↷'),
+			_Utils_Tuple2('cuvee', '⋎'),
+			_Utils_Tuple2('cuwed', '⋏'),
+			_Utils_Tuple2('cwconint', '∲'),
+			_Utils_Tuple2('cwint', '∱'),
+			_Utils_Tuple2('cylcty', '⌭'),
+			_Utils_Tuple2('dagger', '†'),
+			_Utils_Tuple2('Dagger', '‡'),
+			_Utils_Tuple2('daleth', 'ℸ'),
+			_Utils_Tuple2('darr', '↓'),
+			_Utils_Tuple2('Darr', '↡'),
+			_Utils_Tuple2('dArr', '⇓'),
+			_Utils_Tuple2('dash', '‐'),
+			_Utils_Tuple2('Dashv', '⫤'),
+			_Utils_Tuple2('dashv', '⊣'),
+			_Utils_Tuple2('dbkarow', '⤏'),
+			_Utils_Tuple2('dblac', '˝'),
+			_Utils_Tuple2('Dcaron', 'Ď'),
+			_Utils_Tuple2('dcaron', 'ď'),
+			_Utils_Tuple2('Dcy', 'Д'),
+			_Utils_Tuple2('dcy', 'д'),
+			_Utils_Tuple2('ddagger', '‡'),
+			_Utils_Tuple2('ddarr', '⇊'),
+			_Utils_Tuple2('DD', 'ⅅ'),
+			_Utils_Tuple2('dd', 'ⅆ'),
+			_Utils_Tuple2('DDotrahd', '⤑'),
+			_Utils_Tuple2('ddotseq', '⩷'),
+			_Utils_Tuple2('deg', '°'),
+			_Utils_Tuple2('Del', '∇'),
+			_Utils_Tuple2('Delta', 'Δ'),
+			_Utils_Tuple2('delta', 'δ'),
+			_Utils_Tuple2('demptyv', '⦱'),
+			_Utils_Tuple2('dfisht', '⥿'),
+			_Utils_Tuple2('Dfr', '\uD835\uDD07'),
+			_Utils_Tuple2('dfr', '\uD835\uDD21'),
+			_Utils_Tuple2('dHar', '⥥'),
+			_Utils_Tuple2('dharl', '⇃'),
+			_Utils_Tuple2('dharr', '⇂'),
+			_Utils_Tuple2('DiacriticalAcute', '´'),
+			_Utils_Tuple2('DiacriticalDot', '˙'),
+			_Utils_Tuple2('DiacriticalDoubleAcute', '˝'),
+			_Utils_Tuple2('DiacriticalGrave', '`'),
+			_Utils_Tuple2('DiacriticalTilde', '˜'),
+			_Utils_Tuple2('diam', '⋄'),
+			_Utils_Tuple2('diamond', '⋄'),
+			_Utils_Tuple2('Diamond', '⋄'),
+			_Utils_Tuple2('diamondsuit', '♦'),
+			_Utils_Tuple2('diams', '♦'),
+			_Utils_Tuple2('die', '¨'),
+			_Utils_Tuple2('DifferentialD', 'ⅆ'),
+			_Utils_Tuple2('digamma', 'ϝ'),
+			_Utils_Tuple2('disin', '⋲'),
+			_Utils_Tuple2('div', '÷'),
+			_Utils_Tuple2('divide', '÷'),
+			_Utils_Tuple2('divideontimes', '⋇'),
+			_Utils_Tuple2('divonx', '⋇'),
+			_Utils_Tuple2('DJcy', 'Ђ'),
+			_Utils_Tuple2('djcy', 'ђ'),
+			_Utils_Tuple2('dlcorn', '⌞'),
+			_Utils_Tuple2('dlcrop', '⌍'),
+			_Utils_Tuple2('dollar', '$'),
+			_Utils_Tuple2('Dopf', '\uD835\uDD3B'),
+			_Utils_Tuple2('dopf', '\uD835\uDD55'),
+			_Utils_Tuple2('Dot', '¨'),
+			_Utils_Tuple2('dot', '˙'),
+			_Utils_Tuple2('DotDot', '⃜'),
+			_Utils_Tuple2('doteq', '≐'),
+			_Utils_Tuple2('doteqdot', '≑'),
+			_Utils_Tuple2('DotEqual', '≐'),
+			_Utils_Tuple2('dotminus', '∸'),
+			_Utils_Tuple2('dotplus', '∔'),
+			_Utils_Tuple2('dotsquare', '⊡'),
+			_Utils_Tuple2('doublebarwedge', '⌆'),
+			_Utils_Tuple2('DoubleContourIntegral', '∯'),
+			_Utils_Tuple2('DoubleDot', '¨'),
+			_Utils_Tuple2('DoubleDownArrow', '⇓'),
+			_Utils_Tuple2('DoubleLeftArrow', '⇐'),
+			_Utils_Tuple2('DoubleLeftRightArrow', '⇔'),
+			_Utils_Tuple2('DoubleLeftTee', '⫤'),
+			_Utils_Tuple2('DoubleLongLeftArrow', '⟸'),
+			_Utils_Tuple2('DoubleLongLeftRightArrow', '⟺'),
+			_Utils_Tuple2('DoubleLongRightArrow', '⟹'),
+			_Utils_Tuple2('DoubleRightArrow', '⇒'),
+			_Utils_Tuple2('DoubleRightTee', '⊨'),
+			_Utils_Tuple2('DoubleUpArrow', '⇑'),
+			_Utils_Tuple2('DoubleUpDownArrow', '⇕'),
+			_Utils_Tuple2('DoubleVerticalBar', '∥'),
+			_Utils_Tuple2('DownArrowBar', '⤓'),
+			_Utils_Tuple2('downarrow', '↓'),
+			_Utils_Tuple2('DownArrow', '↓'),
+			_Utils_Tuple2('Downarrow', '⇓'),
+			_Utils_Tuple2('DownArrowUpArrow', '⇵'),
+			_Utils_Tuple2('DownBreve', '̑'),
+			_Utils_Tuple2('downdownarrows', '⇊'),
+			_Utils_Tuple2('downharpoonleft', '⇃'),
+			_Utils_Tuple2('downharpoonright', '⇂'),
+			_Utils_Tuple2('DownLeftRightVector', '⥐'),
+			_Utils_Tuple2('DownLeftTeeVector', '⥞'),
+			_Utils_Tuple2('DownLeftVectorBar', '⥖'),
+			_Utils_Tuple2('DownLeftVector', '↽'),
+			_Utils_Tuple2('DownRightTeeVector', '⥟'),
+			_Utils_Tuple2('DownRightVectorBar', '⥗'),
+			_Utils_Tuple2('DownRightVector', '⇁'),
+			_Utils_Tuple2('DownTeeArrow', '↧'),
+			_Utils_Tuple2('DownTee', '⊤'),
+			_Utils_Tuple2('drbkarow', '⤐'),
+			_Utils_Tuple2('drcorn', '⌟'),
+			_Utils_Tuple2('drcrop', '⌌'),
+			_Utils_Tuple2('Dscr', '\uD835\uDC9F'),
+			_Utils_Tuple2('dscr', '\uD835\uDCB9'),
+			_Utils_Tuple2('DScy', 'Ѕ'),
+			_Utils_Tuple2('dscy', 'ѕ'),
+			_Utils_Tuple2('dsol', '⧶'),
+			_Utils_Tuple2('Dstrok', 'Đ'),
+			_Utils_Tuple2('dstrok', 'đ'),
+			_Utils_Tuple2('dtdot', '⋱'),
+			_Utils_Tuple2('dtri', '▿'),
+			_Utils_Tuple2('dtrif', '▾'),
+			_Utils_Tuple2('duarr', '⇵'),
+			_Utils_Tuple2('duhar', '⥯'),
+			_Utils_Tuple2('dwangle', '⦦'),
+			_Utils_Tuple2('DZcy', 'Џ'),
+			_Utils_Tuple2('dzcy', 'џ'),
+			_Utils_Tuple2('dzigrarr', '⟿'),
+			_Utils_Tuple2('Eacute', 'É'),
+			_Utils_Tuple2('eacute', 'é'),
+			_Utils_Tuple2('easter', '⩮'),
+			_Utils_Tuple2('Ecaron', 'Ě'),
+			_Utils_Tuple2('ecaron', 'ě'),
+			_Utils_Tuple2('Ecirc', 'Ê'),
+			_Utils_Tuple2('ecirc', 'ê'),
+			_Utils_Tuple2('ecir', '≖'),
+			_Utils_Tuple2('ecolon', '≕'),
+			_Utils_Tuple2('Ecy', 'Э'),
+			_Utils_Tuple2('ecy', 'э'),
+			_Utils_Tuple2('eDDot', '⩷'),
+			_Utils_Tuple2('Edot', 'Ė'),
+			_Utils_Tuple2('edot', 'ė'),
+			_Utils_Tuple2('eDot', '≑'),
+			_Utils_Tuple2('ee', 'ⅇ'),
+			_Utils_Tuple2('efDot', '≒'),
+			_Utils_Tuple2('Efr', '\uD835\uDD08'),
+			_Utils_Tuple2('efr', '\uD835\uDD22'),
+			_Utils_Tuple2('eg', '⪚'),
+			_Utils_Tuple2('Egrave', 'È'),
+			_Utils_Tuple2('egrave', 'è'),
+			_Utils_Tuple2('egs', '⪖'),
+			_Utils_Tuple2('egsdot', '⪘'),
+			_Utils_Tuple2('el', '⪙'),
+			_Utils_Tuple2('Element', '∈'),
+			_Utils_Tuple2('elinters', '⏧'),
+			_Utils_Tuple2('ell', 'ℓ'),
+			_Utils_Tuple2('els', '⪕'),
+			_Utils_Tuple2('elsdot', '⪗'),
+			_Utils_Tuple2('Emacr', 'Ē'),
+			_Utils_Tuple2('emacr', 'ē'),
+			_Utils_Tuple2('empty', '∅'),
+			_Utils_Tuple2('emptyset', '∅'),
+			_Utils_Tuple2('EmptySmallSquare', '◻'),
+			_Utils_Tuple2('emptyv', '∅'),
+			_Utils_Tuple2('EmptyVerySmallSquare', '▫'),
+			_Utils_Tuple2('emsp13', '\u2004'),
+			_Utils_Tuple2('emsp14', '\u2005'),
+			_Utils_Tuple2('emsp', '\u2003'),
+			_Utils_Tuple2('ENG', 'Ŋ'),
+			_Utils_Tuple2('eng', 'ŋ'),
+			_Utils_Tuple2('ensp', '\u2002'),
+			_Utils_Tuple2('Eogon', 'Ę'),
+			_Utils_Tuple2('eogon', 'ę'),
+			_Utils_Tuple2('Eopf', '\uD835\uDD3C'),
+			_Utils_Tuple2('eopf', '\uD835\uDD56'),
+			_Utils_Tuple2('epar', '⋕'),
+			_Utils_Tuple2('eparsl', '⧣'),
+			_Utils_Tuple2('eplus', '⩱'),
+			_Utils_Tuple2('epsi', 'ε'),
+			_Utils_Tuple2('Epsilon', 'Ε'),
+			_Utils_Tuple2('epsilon', 'ε'),
+			_Utils_Tuple2('epsiv', 'ϵ'),
+			_Utils_Tuple2('eqcirc', '≖'),
+			_Utils_Tuple2('eqcolon', '≕'),
+			_Utils_Tuple2('eqsim', '≂'),
+			_Utils_Tuple2('eqslantgtr', '⪖'),
+			_Utils_Tuple2('eqslantless', '⪕'),
+			_Utils_Tuple2('Equal', '⩵'),
+			_Utils_Tuple2('equals', '='),
+			_Utils_Tuple2('EqualTilde', '≂'),
+			_Utils_Tuple2('equest', '≟'),
+			_Utils_Tuple2('Equilibrium', '⇌'),
+			_Utils_Tuple2('equiv', '≡'),
+			_Utils_Tuple2('equivDD', '⩸'),
+			_Utils_Tuple2('eqvparsl', '⧥'),
+			_Utils_Tuple2('erarr', '⥱'),
+			_Utils_Tuple2('erDot', '≓'),
+			_Utils_Tuple2('escr', 'ℯ'),
+			_Utils_Tuple2('Escr', 'ℰ'),
+			_Utils_Tuple2('esdot', '≐'),
+			_Utils_Tuple2('Esim', '⩳'),
+			_Utils_Tuple2('esim', '≂'),
+			_Utils_Tuple2('Eta', 'Η'),
+			_Utils_Tuple2('eta', 'η'),
+			_Utils_Tuple2('ETH', 'Ð'),
+			_Utils_Tuple2('eth', 'ð'),
+			_Utils_Tuple2('Euml', 'Ë'),
+			_Utils_Tuple2('euml', 'ë'),
+			_Utils_Tuple2('euro', '€'),
+			_Utils_Tuple2('excl', '!'),
+			_Utils_Tuple2('exist', '∃'),
+			_Utils_Tuple2('Exists', '∃'),
+			_Utils_Tuple2('expectation', 'ℰ'),
+			_Utils_Tuple2('exponentiale', 'ⅇ'),
+			_Utils_Tuple2('ExponentialE', 'ⅇ'),
+			_Utils_Tuple2('fallingdotseq', '≒'),
+			_Utils_Tuple2('Fcy', 'Ф'),
+			_Utils_Tuple2('fcy', 'ф'),
+			_Utils_Tuple2('female', '♀'),
+			_Utils_Tuple2('ffilig', 'ﬃ'),
+			_Utils_Tuple2('fflig', 'ﬀ'),
+			_Utils_Tuple2('ffllig', 'ﬄ'),
+			_Utils_Tuple2('Ffr', '\uD835\uDD09'),
+			_Utils_Tuple2('ffr', '\uD835\uDD23'),
+			_Utils_Tuple2('filig', 'ﬁ'),
+			_Utils_Tuple2('FilledSmallSquare', '◼'),
+			_Utils_Tuple2('FilledVerySmallSquare', '▪'),
+			_Utils_Tuple2('fjlig', 'fj'),
+			_Utils_Tuple2('flat', '♭'),
+			_Utils_Tuple2('fllig', 'ﬂ'),
+			_Utils_Tuple2('fltns', '▱'),
+			_Utils_Tuple2('fnof', 'ƒ'),
+			_Utils_Tuple2('Fopf', '\uD835\uDD3D'),
+			_Utils_Tuple2('fopf', '\uD835\uDD57'),
+			_Utils_Tuple2('forall', '∀'),
+			_Utils_Tuple2('ForAll', '∀'),
+			_Utils_Tuple2('fork', '⋔'),
+			_Utils_Tuple2('forkv', '⫙'),
+			_Utils_Tuple2('Fouriertrf', 'ℱ'),
+			_Utils_Tuple2('fpartint', '⨍'),
+			_Utils_Tuple2('frac12', '½'),
+			_Utils_Tuple2('frac13', '⅓'),
+			_Utils_Tuple2('frac14', '¼'),
+			_Utils_Tuple2('frac15', '⅕'),
+			_Utils_Tuple2('frac16', '⅙'),
+			_Utils_Tuple2('frac18', '⅛'),
+			_Utils_Tuple2('frac23', '⅔'),
+			_Utils_Tuple2('frac25', '⅖'),
+			_Utils_Tuple2('frac34', '¾'),
+			_Utils_Tuple2('frac35', '⅗'),
+			_Utils_Tuple2('frac38', '⅜'),
+			_Utils_Tuple2('frac45', '⅘'),
+			_Utils_Tuple2('frac56', '⅚'),
+			_Utils_Tuple2('frac58', '⅝'),
+			_Utils_Tuple2('frac78', '⅞'),
+			_Utils_Tuple2('frasl', '⁄'),
+			_Utils_Tuple2('frown', '⌢'),
+			_Utils_Tuple2('fscr', '\uD835\uDCBB'),
+			_Utils_Tuple2('Fscr', 'ℱ'),
+			_Utils_Tuple2('gacute', 'ǵ'),
+			_Utils_Tuple2('Gamma', 'Γ'),
+			_Utils_Tuple2('gamma', 'γ'),
+			_Utils_Tuple2('Gammad', 'Ϝ'),
+			_Utils_Tuple2('gammad', 'ϝ'),
+			_Utils_Tuple2('gap', '⪆'),
+			_Utils_Tuple2('Gbreve', 'Ğ'),
+			_Utils_Tuple2('gbreve', 'ğ'),
+			_Utils_Tuple2('Gcedil', 'Ģ'),
+			_Utils_Tuple2('Gcirc', 'Ĝ'),
+			_Utils_Tuple2('gcirc', 'ĝ'),
+			_Utils_Tuple2('Gcy', 'Г'),
+			_Utils_Tuple2('gcy', 'г'),
+			_Utils_Tuple2('Gdot', 'Ġ'),
+			_Utils_Tuple2('gdot', 'ġ'),
+			_Utils_Tuple2('ge', '≥'),
+			_Utils_Tuple2('gE', '≧'),
+			_Utils_Tuple2('gEl', '⪌'),
+			_Utils_Tuple2('gel', '⋛'),
+			_Utils_Tuple2('geq', '≥'),
+			_Utils_Tuple2('geqq', '≧'),
+			_Utils_Tuple2('geqslant', '⩾'),
+			_Utils_Tuple2('gescc', '⪩'),
+			_Utils_Tuple2('ges', '⩾'),
+			_Utils_Tuple2('gesdot', '⪀'),
+			_Utils_Tuple2('gesdoto', '⪂'),
+			_Utils_Tuple2('gesdotol', '⪄'),
+			_Utils_Tuple2('gesl', '⋛︀'),
+			_Utils_Tuple2('gesles', '⪔'),
+			_Utils_Tuple2('Gfr', '\uD835\uDD0A'),
+			_Utils_Tuple2('gfr', '\uD835\uDD24'),
+			_Utils_Tuple2('gg', '≫'),
+			_Utils_Tuple2('Gg', '⋙'),
+			_Utils_Tuple2('ggg', '⋙'),
+			_Utils_Tuple2('gimel', 'ℷ'),
+			_Utils_Tuple2('GJcy', 'Ѓ'),
+			_Utils_Tuple2('gjcy', 'ѓ'),
+			_Utils_Tuple2('gla', '⪥'),
+			_Utils_Tuple2('gl', '≷'),
+			_Utils_Tuple2('glE', '⪒'),
+			_Utils_Tuple2('glj', '⪤'),
+			_Utils_Tuple2('gnap', '⪊'),
+			_Utils_Tuple2('gnapprox', '⪊'),
+			_Utils_Tuple2('gne', '⪈'),
+			_Utils_Tuple2('gnE', '≩'),
+			_Utils_Tuple2('gneq', '⪈'),
+			_Utils_Tuple2('gneqq', '≩'),
+			_Utils_Tuple2('gnsim', '⋧'),
+			_Utils_Tuple2('Gopf', '\uD835\uDD3E'),
+			_Utils_Tuple2('gopf', '\uD835\uDD58'),
+			_Utils_Tuple2('grave', '`'),
+			_Utils_Tuple2('GreaterEqual', '≥'),
+			_Utils_Tuple2('GreaterEqualLess', '⋛'),
+			_Utils_Tuple2('GreaterFullEqual', '≧'),
+			_Utils_Tuple2('GreaterGreater', '⪢'),
+			_Utils_Tuple2('GreaterLess', '≷'),
+			_Utils_Tuple2('GreaterSlantEqual', '⩾'),
+			_Utils_Tuple2('GreaterTilde', '≳'),
+			_Utils_Tuple2('Gscr', '\uD835\uDCA2'),
+			_Utils_Tuple2('gscr', 'ℊ'),
+			_Utils_Tuple2('gsim', '≳'),
+			_Utils_Tuple2('gsime', '⪎'),
+			_Utils_Tuple2('gsiml', '⪐'),
+			_Utils_Tuple2('gtcc', '⪧'),
+			_Utils_Tuple2('gtcir', '⩺'),
+			_Utils_Tuple2('gt', '>'),
+			_Utils_Tuple2('GT', '>'),
+			_Utils_Tuple2('Gt', '≫'),
+			_Utils_Tuple2('gtdot', '⋗'),
+			_Utils_Tuple2('gtlPar', '⦕'),
+			_Utils_Tuple2('gtquest', '⩼'),
+			_Utils_Tuple2('gtrapprox', '⪆'),
+			_Utils_Tuple2('gtrarr', '⥸'),
+			_Utils_Tuple2('gtrdot', '⋗'),
+			_Utils_Tuple2('gtreqless', '⋛'),
+			_Utils_Tuple2('gtreqqless', '⪌'),
+			_Utils_Tuple2('gtrless', '≷'),
+			_Utils_Tuple2('gtrsim', '≳'),
+			_Utils_Tuple2('gvertneqq', '≩︀'),
+			_Utils_Tuple2('gvnE', '≩︀'),
+			_Utils_Tuple2('Hacek', 'ˇ'),
+			_Utils_Tuple2('hairsp', '\u200A'),
+			_Utils_Tuple2('half', '½'),
+			_Utils_Tuple2('hamilt', 'ℋ'),
+			_Utils_Tuple2('HARDcy', 'Ъ'),
+			_Utils_Tuple2('hardcy', 'ъ'),
+			_Utils_Tuple2('harrcir', '⥈'),
+			_Utils_Tuple2('harr', '↔'),
+			_Utils_Tuple2('hArr', '⇔'),
+			_Utils_Tuple2('harrw', '↭'),
+			_Utils_Tuple2('Hat', '^'),
+			_Utils_Tuple2('hbar', 'ℏ'),
+			_Utils_Tuple2('Hcirc', 'Ĥ'),
+			_Utils_Tuple2('hcirc', 'ĥ'),
+			_Utils_Tuple2('hearts', '♥'),
+			_Utils_Tuple2('heartsuit', '♥'),
+			_Utils_Tuple2('hellip', '…'),
+			_Utils_Tuple2('hercon', '⊹'),
+			_Utils_Tuple2('hfr', '\uD835\uDD25'),
+			_Utils_Tuple2('Hfr', 'ℌ'),
+			_Utils_Tuple2('HilbertSpace', 'ℋ'),
+			_Utils_Tuple2('hksearow', '⤥'),
+			_Utils_Tuple2('hkswarow', '⤦'),
+			_Utils_Tuple2('hoarr', '⇿'),
+			_Utils_Tuple2('homtht', '∻'),
+			_Utils_Tuple2('hookleftarrow', '↩'),
+			_Utils_Tuple2('hookrightarrow', '↪'),
+			_Utils_Tuple2('hopf', '\uD835\uDD59'),
+			_Utils_Tuple2('Hopf', 'ℍ'),
+			_Utils_Tuple2('horbar', '―'),
+			_Utils_Tuple2('HorizontalLine', '─'),
+			_Utils_Tuple2('hscr', '\uD835\uDCBD'),
+			_Utils_Tuple2('Hscr', 'ℋ'),
+			_Utils_Tuple2('hslash', 'ℏ'),
+			_Utils_Tuple2('Hstrok', 'Ħ'),
+			_Utils_Tuple2('hstrok', 'ħ'),
+			_Utils_Tuple2('HumpDownHump', '≎'),
+			_Utils_Tuple2('HumpEqual', '≏'),
+			_Utils_Tuple2('hybull', '⁃'),
+			_Utils_Tuple2('hyphen', '‐'),
+			_Utils_Tuple2('Iacute', 'Í'),
+			_Utils_Tuple2('iacute', 'í'),
+			_Utils_Tuple2('ic', '\u2063'),
+			_Utils_Tuple2('Icirc', 'Î'),
+			_Utils_Tuple2('icirc', 'î'),
+			_Utils_Tuple2('Icy', 'И'),
+			_Utils_Tuple2('icy', 'и'),
+			_Utils_Tuple2('Idot', 'İ'),
+			_Utils_Tuple2('IEcy', 'Е'),
+			_Utils_Tuple2('iecy', 'е'),
+			_Utils_Tuple2('iexcl', '¡'),
+			_Utils_Tuple2('iff', '⇔'),
+			_Utils_Tuple2('ifr', '\uD835\uDD26'),
+			_Utils_Tuple2('Ifr', 'ℑ'),
+			_Utils_Tuple2('Igrave', 'Ì'),
+			_Utils_Tuple2('igrave', 'ì'),
+			_Utils_Tuple2('ii', 'ⅈ'),
+			_Utils_Tuple2('iiiint', '⨌'),
+			_Utils_Tuple2('iiint', '∭'),
+			_Utils_Tuple2('iinfin', '⧜'),
+			_Utils_Tuple2('iiota', '℩'),
+			_Utils_Tuple2('IJlig', 'Ĳ'),
+			_Utils_Tuple2('ijlig', 'ĳ'),
+			_Utils_Tuple2('Imacr', 'Ī'),
+			_Utils_Tuple2('imacr', 'ī'),
+			_Utils_Tuple2('image', 'ℑ'),
+			_Utils_Tuple2('ImaginaryI', 'ⅈ'),
+			_Utils_Tuple2('imagline', 'ℐ'),
+			_Utils_Tuple2('imagpart', 'ℑ'),
+			_Utils_Tuple2('imath', 'ı'),
+			_Utils_Tuple2('Im', 'ℑ'),
+			_Utils_Tuple2('imof', '⊷'),
+			_Utils_Tuple2('imped', 'Ƶ'),
+			_Utils_Tuple2('Implies', '⇒'),
+			_Utils_Tuple2('incare', '℅'),
+			_Utils_Tuple2('in', '∈'),
+			_Utils_Tuple2('infin', '∞'),
+			_Utils_Tuple2('infintie', '⧝'),
+			_Utils_Tuple2('inodot', 'ı'),
+			_Utils_Tuple2('intcal', '⊺'),
+			_Utils_Tuple2('int', '∫'),
+			_Utils_Tuple2('Int', '∬'),
+			_Utils_Tuple2('integers', 'ℤ'),
+			_Utils_Tuple2('Integral', '∫'),
+			_Utils_Tuple2('intercal', '⊺'),
+			_Utils_Tuple2('Intersection', '⋂'),
+			_Utils_Tuple2('intlarhk', '⨗'),
+			_Utils_Tuple2('intprod', '⨼'),
+			_Utils_Tuple2('InvisibleComma', '\u2063'),
+			_Utils_Tuple2('InvisibleTimes', '\u2062'),
+			_Utils_Tuple2('IOcy', 'Ё'),
+			_Utils_Tuple2('iocy', 'ё'),
+			_Utils_Tuple2('Iogon', 'Į'),
+			_Utils_Tuple2('iogon', 'į'),
+			_Utils_Tuple2('Iopf', '\uD835\uDD40'),
+			_Utils_Tuple2('iopf', '\uD835\uDD5A'),
+			_Utils_Tuple2('Iota', 'Ι'),
+			_Utils_Tuple2('iota', 'ι'),
+			_Utils_Tuple2('iprod', '⨼'),
+			_Utils_Tuple2('iquest', '¿'),
+			_Utils_Tuple2('iscr', '\uD835\uDCBE'),
+			_Utils_Tuple2('Iscr', 'ℐ'),
+			_Utils_Tuple2('isin', '∈'),
+			_Utils_Tuple2('isindot', '⋵'),
+			_Utils_Tuple2('isinE', '⋹'),
+			_Utils_Tuple2('isins', '⋴'),
+			_Utils_Tuple2('isinsv', '⋳'),
+			_Utils_Tuple2('isinv', '∈'),
+			_Utils_Tuple2('it', '\u2062'),
+			_Utils_Tuple2('Itilde', 'Ĩ'),
+			_Utils_Tuple2('itilde', 'ĩ'),
+			_Utils_Tuple2('Iukcy', 'І'),
+			_Utils_Tuple2('iukcy', 'і'),
+			_Utils_Tuple2('Iuml', 'Ï'),
+			_Utils_Tuple2('iuml', 'ï'),
+			_Utils_Tuple2('Jcirc', 'Ĵ'),
+			_Utils_Tuple2('jcirc', 'ĵ'),
+			_Utils_Tuple2('Jcy', 'Й'),
+			_Utils_Tuple2('jcy', 'й'),
+			_Utils_Tuple2('Jfr', '\uD835\uDD0D'),
+			_Utils_Tuple2('jfr', '\uD835\uDD27'),
+			_Utils_Tuple2('jmath', 'ȷ'),
+			_Utils_Tuple2('Jopf', '\uD835\uDD41'),
+			_Utils_Tuple2('jopf', '\uD835\uDD5B'),
+			_Utils_Tuple2('Jscr', '\uD835\uDCA5'),
+			_Utils_Tuple2('jscr', '\uD835\uDCBF'),
+			_Utils_Tuple2('Jsercy', 'Ј'),
+			_Utils_Tuple2('jsercy', 'ј'),
+			_Utils_Tuple2('Jukcy', 'Є'),
+			_Utils_Tuple2('jukcy', 'є'),
+			_Utils_Tuple2('Kappa', 'Κ'),
+			_Utils_Tuple2('kappa', 'κ'),
+			_Utils_Tuple2('kappav', 'ϰ'),
+			_Utils_Tuple2('Kcedil', 'Ķ'),
+			_Utils_Tuple2('kcedil', 'ķ'),
+			_Utils_Tuple2('Kcy', 'К'),
+			_Utils_Tuple2('kcy', 'к'),
+			_Utils_Tuple2('Kfr', '\uD835\uDD0E'),
+			_Utils_Tuple2('kfr', '\uD835\uDD28'),
+			_Utils_Tuple2('kgreen', 'ĸ'),
+			_Utils_Tuple2('KHcy', 'Х'),
+			_Utils_Tuple2('khcy', 'х'),
+			_Utils_Tuple2('KJcy', 'Ќ'),
+			_Utils_Tuple2('kjcy', 'ќ'),
+			_Utils_Tuple2('Kopf', '\uD835\uDD42'),
+			_Utils_Tuple2('kopf', '\uD835\uDD5C'),
+			_Utils_Tuple2('Kscr', '\uD835\uDCA6'),
+			_Utils_Tuple2('kscr', '\uD835\uDCC0'),
+			_Utils_Tuple2('lAarr', '⇚'),
+			_Utils_Tuple2('Lacute', 'Ĺ'),
+			_Utils_Tuple2('lacute', 'ĺ'),
+			_Utils_Tuple2('laemptyv', '⦴'),
+			_Utils_Tuple2('lagran', 'ℒ'),
+			_Utils_Tuple2('Lambda', 'Λ'),
+			_Utils_Tuple2('lambda', 'λ'),
+			_Utils_Tuple2('lang', '⟨'),
+			_Utils_Tuple2('Lang', '⟪'),
+			_Utils_Tuple2('langd', '⦑'),
+			_Utils_Tuple2('langle', '⟨'),
+			_Utils_Tuple2('lap', '⪅'),
+			_Utils_Tuple2('Laplacetrf', 'ℒ'),
+			_Utils_Tuple2('laquo', '«'),
+			_Utils_Tuple2('larrb', '⇤'),
+			_Utils_Tuple2('larrbfs', '⤟'),
+			_Utils_Tuple2('larr', '←'),
+			_Utils_Tuple2('Larr', '↞'),
+			_Utils_Tuple2('lArr', '⇐'),
+			_Utils_Tuple2('larrfs', '⤝'),
+			_Utils_Tuple2('larrhk', '↩'),
+			_Utils_Tuple2('larrlp', '↫'),
+			_Utils_Tuple2('larrpl', '⤹'),
+			_Utils_Tuple2('larrsim', '⥳'),
+			_Utils_Tuple2('larrtl', '↢'),
+			_Utils_Tuple2('latail', '⤙'),
+			_Utils_Tuple2('lAtail', '⤛'),
+			_Utils_Tuple2('lat', '⪫'),
+			_Utils_Tuple2('late', '⪭'),
+			_Utils_Tuple2('lates', '⪭︀'),
+			_Utils_Tuple2('lbarr', '⤌'),
+			_Utils_Tuple2('lBarr', '⤎'),
+			_Utils_Tuple2('lbbrk', '❲'),
+			_Utils_Tuple2('lbrace', '{'),
+			_Utils_Tuple2('lbrack', '['),
+			_Utils_Tuple2('lbrke', '⦋'),
+			_Utils_Tuple2('lbrksld', '⦏'),
+			_Utils_Tuple2('lbrkslu', '⦍'),
+			_Utils_Tuple2('Lcaron', 'Ľ'),
+			_Utils_Tuple2('lcaron', 'ľ'),
+			_Utils_Tuple2('Lcedil', 'Ļ'),
+			_Utils_Tuple2('lcedil', 'ļ'),
+			_Utils_Tuple2('lceil', '⌈'),
+			_Utils_Tuple2('lcub', '{'),
+			_Utils_Tuple2('Lcy', 'Л'),
+			_Utils_Tuple2('lcy', 'л'),
+			_Utils_Tuple2('ldca', '⤶'),
+			_Utils_Tuple2('ldquo', '“'),
+			_Utils_Tuple2('ldquor', '„'),
+			_Utils_Tuple2('ldrdhar', '⥧'),
+			_Utils_Tuple2('ldrushar', '⥋'),
+			_Utils_Tuple2('ldsh', '↲'),
+			_Utils_Tuple2('le', '≤'),
+			_Utils_Tuple2('lE', '≦'),
+			_Utils_Tuple2('LeftAngleBracket', '⟨'),
+			_Utils_Tuple2('LeftArrowBar', '⇤'),
+			_Utils_Tuple2('leftarrow', '←'),
+			_Utils_Tuple2('LeftArrow', '←'),
+			_Utils_Tuple2('Leftarrow', '⇐'),
+			_Utils_Tuple2('LeftArrowRightArrow', '⇆'),
+			_Utils_Tuple2('leftarrowtail', '↢'),
+			_Utils_Tuple2('LeftCeiling', '⌈'),
+			_Utils_Tuple2('LeftDoubleBracket', '⟦'),
+			_Utils_Tuple2('LeftDownTeeVector', '⥡'),
+			_Utils_Tuple2('LeftDownVectorBar', '⥙'),
+			_Utils_Tuple2('LeftDownVector', '⇃'),
+			_Utils_Tuple2('LeftFloor', '⌊'),
+			_Utils_Tuple2('leftharpoondown', '↽'),
+			_Utils_Tuple2('leftharpoonup', '↼'),
+			_Utils_Tuple2('leftleftarrows', '⇇'),
+			_Utils_Tuple2('leftrightarrow', '↔'),
+			_Utils_Tuple2('LeftRightArrow', '↔'),
+			_Utils_Tuple2('Leftrightarrow', '⇔'),
+			_Utils_Tuple2('leftrightarrows', '⇆'),
+			_Utils_Tuple2('leftrightharpoons', '⇋'),
+			_Utils_Tuple2('leftrightsquigarrow', '↭'),
+			_Utils_Tuple2('LeftRightVector', '⥎'),
+			_Utils_Tuple2('LeftTeeArrow', '↤'),
+			_Utils_Tuple2('LeftTee', '⊣'),
+			_Utils_Tuple2('LeftTeeVector', '⥚'),
+			_Utils_Tuple2('leftthreetimes', '⋋'),
+			_Utils_Tuple2('LeftTriangleBar', '⧏'),
+			_Utils_Tuple2('LeftTriangle', '⊲'),
+			_Utils_Tuple2('LeftTriangleEqual', '⊴'),
+			_Utils_Tuple2('LeftUpDownVector', '⥑'),
+			_Utils_Tuple2('LeftUpTeeVector', '⥠'),
+			_Utils_Tuple2('LeftUpVectorBar', '⥘'),
+			_Utils_Tuple2('LeftUpVector', '↿'),
+			_Utils_Tuple2('LeftVectorBar', '⥒'),
+			_Utils_Tuple2('LeftVector', '↼'),
+			_Utils_Tuple2('lEg', '⪋'),
+			_Utils_Tuple2('leg', '⋚'),
+			_Utils_Tuple2('leq', '≤'),
+			_Utils_Tuple2('leqq', '≦'),
+			_Utils_Tuple2('leqslant', '⩽'),
+			_Utils_Tuple2('lescc', '⪨'),
+			_Utils_Tuple2('les', '⩽'),
+			_Utils_Tuple2('lesdot', '⩿'),
+			_Utils_Tuple2('lesdoto', '⪁'),
+			_Utils_Tuple2('lesdotor', '⪃'),
+			_Utils_Tuple2('lesg', '⋚︀'),
+			_Utils_Tuple2('lesges', '⪓'),
+			_Utils_Tuple2('lessapprox', '⪅'),
+			_Utils_Tuple2('lessdot', '⋖'),
+			_Utils_Tuple2('lesseqgtr', '⋚'),
+			_Utils_Tuple2('lesseqqgtr', '⪋'),
+			_Utils_Tuple2('LessEqualGreater', '⋚'),
+			_Utils_Tuple2('LessFullEqual', '≦'),
+			_Utils_Tuple2('LessGreater', '≶'),
+			_Utils_Tuple2('lessgtr', '≶'),
+			_Utils_Tuple2('LessLess', '⪡'),
+			_Utils_Tuple2('lesssim', '≲'),
+			_Utils_Tuple2('LessSlantEqual', '⩽'),
+			_Utils_Tuple2('LessTilde', '≲'),
+			_Utils_Tuple2('lfisht', '⥼'),
+			_Utils_Tuple2('lfloor', '⌊'),
+			_Utils_Tuple2('Lfr', '\uD835\uDD0F'),
+			_Utils_Tuple2('lfr', '\uD835\uDD29'),
+			_Utils_Tuple2('lg', '≶'),
+			_Utils_Tuple2('lgE', '⪑'),
+			_Utils_Tuple2('lHar', '⥢'),
+			_Utils_Tuple2('lhard', '↽'),
+			_Utils_Tuple2('lharu', '↼'),
+			_Utils_Tuple2('lharul', '⥪'),
+			_Utils_Tuple2('lhblk', '▄'),
+			_Utils_Tuple2('LJcy', 'Љ'),
+			_Utils_Tuple2('ljcy', 'љ'),
+			_Utils_Tuple2('llarr', '⇇'),
+			_Utils_Tuple2('ll', '≪'),
+			_Utils_Tuple2('Ll', '⋘'),
+			_Utils_Tuple2('llcorner', '⌞'),
+			_Utils_Tuple2('Lleftarrow', '⇚'),
+			_Utils_Tuple2('llhard', '⥫'),
+			_Utils_Tuple2('lltri', '◺'),
+			_Utils_Tuple2('Lmidot', 'Ŀ'),
+			_Utils_Tuple2('lmidot', 'ŀ'),
+			_Utils_Tuple2('lmoustache', '⎰'),
+			_Utils_Tuple2('lmoust', '⎰'),
+			_Utils_Tuple2('lnap', '⪉'),
+			_Utils_Tuple2('lnapprox', '⪉'),
+			_Utils_Tuple2('lne', '⪇'),
+			_Utils_Tuple2('lnE', '≨'),
+			_Utils_Tuple2('lneq', '⪇'),
+			_Utils_Tuple2('lneqq', '≨'),
+			_Utils_Tuple2('lnsim', '⋦'),
+			_Utils_Tuple2('loang', '⟬'),
+			_Utils_Tuple2('loarr', '⇽'),
+			_Utils_Tuple2('lobrk', '⟦'),
+			_Utils_Tuple2('longleftarrow', '⟵'),
+			_Utils_Tuple2('LongLeftArrow', '⟵'),
+			_Utils_Tuple2('Longleftarrow', '⟸'),
+			_Utils_Tuple2('longleftrightarrow', '⟷'),
+			_Utils_Tuple2('LongLeftRightArrow', '⟷'),
+			_Utils_Tuple2('Longleftrightarrow', '⟺'),
+			_Utils_Tuple2('longmapsto', '⟼'),
+			_Utils_Tuple2('longrightarrow', '⟶'),
+			_Utils_Tuple2('LongRightArrow', '⟶'),
+			_Utils_Tuple2('Longrightarrow', '⟹'),
+			_Utils_Tuple2('looparrowleft', '↫'),
+			_Utils_Tuple2('looparrowright', '↬'),
+			_Utils_Tuple2('lopar', '⦅'),
+			_Utils_Tuple2('Lopf', '\uD835\uDD43'),
+			_Utils_Tuple2('lopf', '\uD835\uDD5D'),
+			_Utils_Tuple2('loplus', '⨭'),
+			_Utils_Tuple2('lotimes', '⨴'),
+			_Utils_Tuple2('lowast', '∗'),
+			_Utils_Tuple2('lowbar', '_'),
+			_Utils_Tuple2('LowerLeftArrow', '↙'),
+			_Utils_Tuple2('LowerRightArrow', '↘'),
+			_Utils_Tuple2('loz', '◊'),
+			_Utils_Tuple2('lozenge', '◊'),
+			_Utils_Tuple2('lozf', '⧫'),
+			_Utils_Tuple2('lpar', '('),
+			_Utils_Tuple2('lparlt', '⦓'),
+			_Utils_Tuple2('lrarr', '⇆'),
+			_Utils_Tuple2('lrcorner', '⌟'),
+			_Utils_Tuple2('lrhar', '⇋'),
+			_Utils_Tuple2('lrhard', '⥭'),
+			_Utils_Tuple2('lrm', '\u200E'),
+			_Utils_Tuple2('lrtri', '⊿'),
+			_Utils_Tuple2('lsaquo', '‹'),
+			_Utils_Tuple2('lscr', '\uD835\uDCC1'),
+			_Utils_Tuple2('Lscr', 'ℒ'),
+			_Utils_Tuple2('lsh', '↰'),
+			_Utils_Tuple2('Lsh', '↰'),
+			_Utils_Tuple2('lsim', '≲'),
+			_Utils_Tuple2('lsime', '⪍'),
+			_Utils_Tuple2('lsimg', '⪏'),
+			_Utils_Tuple2('lsqb', '['),
+			_Utils_Tuple2('lsquo', '‘'),
+			_Utils_Tuple2('lsquor', '‚'),
+			_Utils_Tuple2('Lstrok', 'Ł'),
+			_Utils_Tuple2('lstrok', 'ł'),
+			_Utils_Tuple2('ltcc', '⪦'),
+			_Utils_Tuple2('ltcir', '⩹'),
+			_Utils_Tuple2('lt', '<'),
+			_Utils_Tuple2('LT', '<'),
+			_Utils_Tuple2('Lt', '≪'),
+			_Utils_Tuple2('ltdot', '⋖'),
+			_Utils_Tuple2('lthree', '⋋'),
+			_Utils_Tuple2('ltimes', '⋉'),
+			_Utils_Tuple2('ltlarr', '⥶'),
+			_Utils_Tuple2('ltquest', '⩻'),
+			_Utils_Tuple2('ltri', '◃'),
+			_Utils_Tuple2('ltrie', '⊴'),
+			_Utils_Tuple2('ltrif', '◂'),
+			_Utils_Tuple2('ltrPar', '⦖'),
+			_Utils_Tuple2('lurdshar', '⥊'),
+			_Utils_Tuple2('luruhar', '⥦'),
+			_Utils_Tuple2('lvertneqq', '≨︀'),
+			_Utils_Tuple2('lvnE', '≨︀'),
+			_Utils_Tuple2('macr', '¯'),
+			_Utils_Tuple2('male', '♂'),
+			_Utils_Tuple2('malt', '✠'),
+			_Utils_Tuple2('maltese', '✠'),
+			_Utils_Tuple2('Map', '⤅'),
+			_Utils_Tuple2('map', '↦'),
+			_Utils_Tuple2('mapsto', '↦'),
+			_Utils_Tuple2('mapstodown', '↧'),
+			_Utils_Tuple2('mapstoleft', '↤'),
+			_Utils_Tuple2('mapstoup', '↥'),
+			_Utils_Tuple2('marker', '▮'),
+			_Utils_Tuple2('mcomma', '⨩'),
+			_Utils_Tuple2('Mcy', 'М'),
+			_Utils_Tuple2('mcy', 'м'),
+			_Utils_Tuple2('mdash', '—'),
+			_Utils_Tuple2('mDDot', '∺'),
+			_Utils_Tuple2('measuredangle', '∡'),
+			_Utils_Tuple2('MediumSpace', '\u205F'),
+			_Utils_Tuple2('Mellintrf', 'ℳ'),
+			_Utils_Tuple2('Mfr', '\uD835\uDD10'),
+			_Utils_Tuple2('mfr', '\uD835\uDD2A'),
+			_Utils_Tuple2('mho', '℧'),
+			_Utils_Tuple2('micro', 'µ'),
+			_Utils_Tuple2('midast', '*'),
+			_Utils_Tuple2('midcir', '⫰'),
+			_Utils_Tuple2('mid', '∣'),
+			_Utils_Tuple2('middot', '·'),
+			_Utils_Tuple2('minusb', '⊟'),
+			_Utils_Tuple2('minus', '−'),
+			_Utils_Tuple2('minusd', '∸'),
+			_Utils_Tuple2('minusdu', '⨪'),
+			_Utils_Tuple2('MinusPlus', '∓'),
+			_Utils_Tuple2('mlcp', '⫛'),
+			_Utils_Tuple2('mldr', '…'),
+			_Utils_Tuple2('mnplus', '∓'),
+			_Utils_Tuple2('models', '⊧'),
+			_Utils_Tuple2('Mopf', '\uD835\uDD44'),
+			_Utils_Tuple2('mopf', '\uD835\uDD5E'),
+			_Utils_Tuple2('mp', '∓'),
+			_Utils_Tuple2('mscr', '\uD835\uDCC2'),
+			_Utils_Tuple2('Mscr', 'ℳ'),
+			_Utils_Tuple2('mstpos', '∾'),
+			_Utils_Tuple2('Mu', 'Μ'),
+			_Utils_Tuple2('mu', 'μ'),
+			_Utils_Tuple2('multimap', '⊸'),
+			_Utils_Tuple2('mumap', '⊸'),
+			_Utils_Tuple2('nabla', '∇'),
+			_Utils_Tuple2('Nacute', 'Ń'),
+			_Utils_Tuple2('nacute', 'ń'),
+			_Utils_Tuple2('nang', '∠⃒'),
+			_Utils_Tuple2('nap', '≉'),
+			_Utils_Tuple2('napE', '⩰̸'),
+			_Utils_Tuple2('napid', '≋̸'),
+			_Utils_Tuple2('napos', 'ŉ'),
+			_Utils_Tuple2('napprox', '≉'),
+			_Utils_Tuple2('natural', '♮'),
+			_Utils_Tuple2('naturals', 'ℕ'),
+			_Utils_Tuple2('natur', '♮'),
+			_Utils_Tuple2('nbsp', '\u00A0'),
+			_Utils_Tuple2('nbump', '≎̸'),
+			_Utils_Tuple2('nbumpe', '≏̸'),
+			_Utils_Tuple2('ncap', '⩃'),
+			_Utils_Tuple2('Ncaron', 'Ň'),
+			_Utils_Tuple2('ncaron', 'ň'),
+			_Utils_Tuple2('Ncedil', 'Ņ'),
+			_Utils_Tuple2('ncedil', 'ņ'),
+			_Utils_Tuple2('ncong', '≇'),
+			_Utils_Tuple2('ncongdot', '⩭̸'),
+			_Utils_Tuple2('ncup', '⩂'),
+			_Utils_Tuple2('Ncy', 'Н'),
+			_Utils_Tuple2('ncy', 'н'),
+			_Utils_Tuple2('ndash', '–'),
+			_Utils_Tuple2('nearhk', '⤤'),
+			_Utils_Tuple2('nearr', '↗'),
+			_Utils_Tuple2('neArr', '⇗'),
+			_Utils_Tuple2('nearrow', '↗'),
+			_Utils_Tuple2('ne', '≠'),
+			_Utils_Tuple2('nedot', '≐̸'),
+			_Utils_Tuple2('NegativeMediumSpace', '\u200B'),
+			_Utils_Tuple2('NegativeThickSpace', '\u200B'),
+			_Utils_Tuple2('NegativeThinSpace', '\u200B'),
+			_Utils_Tuple2('NegativeVeryThinSpace', '\u200B'),
+			_Utils_Tuple2('nequiv', '≢'),
+			_Utils_Tuple2('nesear', '⤨'),
+			_Utils_Tuple2('nesim', '≂̸'),
+			_Utils_Tuple2('NestedGreaterGreater', '≫'),
+			_Utils_Tuple2('NestedLessLess', '≪'),
+			_Utils_Tuple2('NewLine', '\n'),
+			_Utils_Tuple2('nexist', '∄'),
+			_Utils_Tuple2('nexists', '∄'),
+			_Utils_Tuple2('Nfr', '\uD835\uDD11'),
+			_Utils_Tuple2('nfr', '\uD835\uDD2B'),
+			_Utils_Tuple2('ngE', '≧̸'),
+			_Utils_Tuple2('nge', '≱'),
+			_Utils_Tuple2('ngeq', '≱'),
+			_Utils_Tuple2('ngeqq', '≧̸'),
+			_Utils_Tuple2('ngeqslant', '⩾̸'),
+			_Utils_Tuple2('nges', '⩾̸'),
+			_Utils_Tuple2('nGg', '⋙̸'),
+			_Utils_Tuple2('ngsim', '≵'),
+			_Utils_Tuple2('nGt', '≫⃒'),
+			_Utils_Tuple2('ngt', '≯'),
+			_Utils_Tuple2('ngtr', '≯'),
+			_Utils_Tuple2('nGtv', '≫̸'),
+			_Utils_Tuple2('nharr', '↮'),
+			_Utils_Tuple2('nhArr', '⇎'),
+			_Utils_Tuple2('nhpar', '⫲'),
+			_Utils_Tuple2('ni', '∋'),
+			_Utils_Tuple2('nis', '⋼'),
+			_Utils_Tuple2('nisd', '⋺'),
+			_Utils_Tuple2('niv', '∋'),
+			_Utils_Tuple2('NJcy', 'Њ'),
+			_Utils_Tuple2('njcy', 'њ'),
+			_Utils_Tuple2('nlarr', '↚'),
+			_Utils_Tuple2('nlArr', '⇍'),
+			_Utils_Tuple2('nldr', '‥'),
+			_Utils_Tuple2('nlE', '≦̸'),
+			_Utils_Tuple2('nle', '≰'),
+			_Utils_Tuple2('nleftarrow', '↚'),
+			_Utils_Tuple2('nLeftarrow', '⇍'),
+			_Utils_Tuple2('nleftrightarrow', '↮'),
+			_Utils_Tuple2('nLeftrightarrow', '⇎'),
+			_Utils_Tuple2('nleq', '≰'),
+			_Utils_Tuple2('nleqq', '≦̸'),
+			_Utils_Tuple2('nleqslant', '⩽̸'),
+			_Utils_Tuple2('nles', '⩽̸'),
+			_Utils_Tuple2('nless', '≮'),
+			_Utils_Tuple2('nLl', '⋘̸'),
+			_Utils_Tuple2('nlsim', '≴'),
+			_Utils_Tuple2('nLt', '≪⃒'),
+			_Utils_Tuple2('nlt', '≮'),
+			_Utils_Tuple2('nltri', '⋪'),
+			_Utils_Tuple2('nltrie', '⋬'),
+			_Utils_Tuple2('nLtv', '≪̸'),
+			_Utils_Tuple2('nmid', '∤'),
+			_Utils_Tuple2('NoBreak', '\u2060'),
+			_Utils_Tuple2('NonBreakingSpace', '\u00A0'),
+			_Utils_Tuple2('nopf', '\uD835\uDD5F'),
+			_Utils_Tuple2('Nopf', 'ℕ'),
+			_Utils_Tuple2('Not', '⫬'),
+			_Utils_Tuple2('not', '¬'),
+			_Utils_Tuple2('NotCongruent', '≢'),
+			_Utils_Tuple2('NotCupCap', '≭'),
+			_Utils_Tuple2('NotDoubleVerticalBar', '∦'),
+			_Utils_Tuple2('NotElement', '∉'),
+			_Utils_Tuple2('NotEqual', '≠'),
+			_Utils_Tuple2('NotEqualTilde', '≂̸'),
+			_Utils_Tuple2('NotExists', '∄'),
+			_Utils_Tuple2('NotGreater', '≯'),
+			_Utils_Tuple2('NotGreaterEqual', '≱'),
+			_Utils_Tuple2('NotGreaterFullEqual', '≧̸'),
+			_Utils_Tuple2('NotGreaterGreater', '≫̸'),
+			_Utils_Tuple2('NotGreaterLess', '≹'),
+			_Utils_Tuple2('NotGreaterSlantEqual', '⩾̸'),
+			_Utils_Tuple2('NotGreaterTilde', '≵'),
+			_Utils_Tuple2('NotHumpDownHump', '≎̸'),
+			_Utils_Tuple2('NotHumpEqual', '≏̸'),
+			_Utils_Tuple2('notin', '∉'),
+			_Utils_Tuple2('notindot', '⋵̸'),
+			_Utils_Tuple2('notinE', '⋹̸'),
+			_Utils_Tuple2('notinva', '∉'),
+			_Utils_Tuple2('notinvb', '⋷'),
+			_Utils_Tuple2('notinvc', '⋶'),
+			_Utils_Tuple2('NotLeftTriangleBar', '⧏̸'),
+			_Utils_Tuple2('NotLeftTriangle', '⋪'),
+			_Utils_Tuple2('NotLeftTriangleEqual', '⋬'),
+			_Utils_Tuple2('NotLess', '≮'),
+			_Utils_Tuple2('NotLessEqual', '≰'),
+			_Utils_Tuple2('NotLessGreater', '≸'),
+			_Utils_Tuple2('NotLessLess', '≪̸'),
+			_Utils_Tuple2('NotLessSlantEqual', '⩽̸'),
+			_Utils_Tuple2('NotLessTilde', '≴'),
+			_Utils_Tuple2('NotNestedGreaterGreater', '⪢̸'),
+			_Utils_Tuple2('NotNestedLessLess', '⪡̸'),
+			_Utils_Tuple2('notni', '∌'),
+			_Utils_Tuple2('notniva', '∌'),
+			_Utils_Tuple2('notnivb', '⋾'),
+			_Utils_Tuple2('notnivc', '⋽'),
+			_Utils_Tuple2('NotPrecedes', '⊀'),
+			_Utils_Tuple2('NotPrecedesEqual', '⪯̸'),
+			_Utils_Tuple2('NotPrecedesSlantEqual', '⋠'),
+			_Utils_Tuple2('NotReverseElement', '∌'),
+			_Utils_Tuple2('NotRightTriangleBar', '⧐̸'),
+			_Utils_Tuple2('NotRightTriangle', '⋫'),
+			_Utils_Tuple2('NotRightTriangleEqual', '⋭'),
+			_Utils_Tuple2('NotSquareSubset', '⊏̸'),
+			_Utils_Tuple2('NotSquareSubsetEqual', '⋢'),
+			_Utils_Tuple2('NotSquareSuperset', '⊐̸'),
+			_Utils_Tuple2('NotSquareSupersetEqual', '⋣'),
+			_Utils_Tuple2('NotSubset', '⊂⃒'),
+			_Utils_Tuple2('NotSubsetEqual', '⊈'),
+			_Utils_Tuple2('NotSucceeds', '⊁'),
+			_Utils_Tuple2('NotSucceedsEqual', '⪰̸'),
+			_Utils_Tuple2('NotSucceedsSlantEqual', '⋡'),
+			_Utils_Tuple2('NotSucceedsTilde', '≿̸'),
+			_Utils_Tuple2('NotSuperset', '⊃⃒'),
+			_Utils_Tuple2('NotSupersetEqual', '⊉'),
+			_Utils_Tuple2('NotTilde', '≁'),
+			_Utils_Tuple2('NotTildeEqual', '≄'),
+			_Utils_Tuple2('NotTildeFullEqual', '≇'),
+			_Utils_Tuple2('NotTildeTilde', '≉'),
+			_Utils_Tuple2('NotVerticalBar', '∤'),
+			_Utils_Tuple2('nparallel', '∦'),
+			_Utils_Tuple2('npar', '∦'),
+			_Utils_Tuple2('nparsl', '⫽⃥'),
+			_Utils_Tuple2('npart', '∂̸'),
+			_Utils_Tuple2('npolint', '⨔'),
+			_Utils_Tuple2('npr', '⊀'),
+			_Utils_Tuple2('nprcue', '⋠'),
+			_Utils_Tuple2('nprec', '⊀'),
+			_Utils_Tuple2('npreceq', '⪯̸'),
+			_Utils_Tuple2('npre', '⪯̸'),
+			_Utils_Tuple2('nrarrc', '⤳̸'),
+			_Utils_Tuple2('nrarr', '↛'),
+			_Utils_Tuple2('nrArr', '⇏'),
+			_Utils_Tuple2('nrarrw', '↝̸'),
+			_Utils_Tuple2('nrightarrow', '↛'),
+			_Utils_Tuple2('nRightarrow', '⇏'),
+			_Utils_Tuple2('nrtri', '⋫'),
+			_Utils_Tuple2('nrtrie', '⋭'),
+			_Utils_Tuple2('nsc', '⊁'),
+			_Utils_Tuple2('nsccue', '⋡'),
+			_Utils_Tuple2('nsce', '⪰̸'),
+			_Utils_Tuple2('Nscr', '\uD835\uDCA9'),
+			_Utils_Tuple2('nscr', '\uD835\uDCC3'),
+			_Utils_Tuple2('nshortmid', '∤'),
+			_Utils_Tuple2('nshortparallel', '∦'),
+			_Utils_Tuple2('nsim', '≁'),
+			_Utils_Tuple2('nsime', '≄'),
+			_Utils_Tuple2('nsimeq', '≄'),
+			_Utils_Tuple2('nsmid', '∤'),
+			_Utils_Tuple2('nspar', '∦'),
+			_Utils_Tuple2('nsqsube', '⋢'),
+			_Utils_Tuple2('nsqsupe', '⋣'),
+			_Utils_Tuple2('nsub', '⊄'),
+			_Utils_Tuple2('nsubE', '⫅̸'),
+			_Utils_Tuple2('nsube', '⊈'),
+			_Utils_Tuple2('nsubset', '⊂⃒'),
+			_Utils_Tuple2('nsubseteq', '⊈'),
+			_Utils_Tuple2('nsubseteqq', '⫅̸'),
+			_Utils_Tuple2('nsucc', '⊁'),
+			_Utils_Tuple2('nsucceq', '⪰̸'),
+			_Utils_Tuple2('nsup', '⊅'),
+			_Utils_Tuple2('nsupE', '⫆̸'),
+			_Utils_Tuple2('nsupe', '⊉'),
+			_Utils_Tuple2('nsupset', '⊃⃒'),
+			_Utils_Tuple2('nsupseteq', '⊉'),
+			_Utils_Tuple2('nsupseteqq', '⫆̸'),
+			_Utils_Tuple2('ntgl', '≹'),
+			_Utils_Tuple2('Ntilde', 'Ñ'),
+			_Utils_Tuple2('ntilde', 'ñ'),
+			_Utils_Tuple2('ntlg', '≸'),
+			_Utils_Tuple2('ntriangleleft', '⋪'),
+			_Utils_Tuple2('ntrianglelefteq', '⋬'),
+			_Utils_Tuple2('ntriangleright', '⋫'),
+			_Utils_Tuple2('ntrianglerighteq', '⋭'),
+			_Utils_Tuple2('Nu', 'Ν'),
+			_Utils_Tuple2('nu', 'ν'),
+			_Utils_Tuple2('num', '#'),
+			_Utils_Tuple2('numero', '№'),
+			_Utils_Tuple2('numsp', '\u2007'),
+			_Utils_Tuple2('nvap', '≍⃒'),
+			_Utils_Tuple2('nvdash', '⊬'),
+			_Utils_Tuple2('nvDash', '⊭'),
+			_Utils_Tuple2('nVdash', '⊮'),
+			_Utils_Tuple2('nVDash', '⊯'),
+			_Utils_Tuple2('nvge', '≥⃒'),
+			_Utils_Tuple2('nvgt', '>⃒'),
+			_Utils_Tuple2('nvHarr', '⤄'),
+			_Utils_Tuple2('nvinfin', '⧞'),
+			_Utils_Tuple2('nvlArr', '⤂'),
+			_Utils_Tuple2('nvle', '≤⃒'),
+			_Utils_Tuple2('nvlt', '<⃒'),
+			_Utils_Tuple2('nvltrie', '⊴⃒'),
+			_Utils_Tuple2('nvrArr', '⤃'),
+			_Utils_Tuple2('nvrtrie', '⊵⃒'),
+			_Utils_Tuple2('nvsim', '∼⃒'),
+			_Utils_Tuple2('nwarhk', '⤣'),
+			_Utils_Tuple2('nwarr', '↖'),
+			_Utils_Tuple2('nwArr', '⇖'),
+			_Utils_Tuple2('nwarrow', '↖'),
+			_Utils_Tuple2('nwnear', '⤧'),
+			_Utils_Tuple2('Oacute', 'Ó'),
+			_Utils_Tuple2('oacute', 'ó'),
+			_Utils_Tuple2('oast', '⊛'),
+			_Utils_Tuple2('Ocirc', 'Ô'),
+			_Utils_Tuple2('ocirc', 'ô'),
+			_Utils_Tuple2('ocir', '⊚'),
+			_Utils_Tuple2('Ocy', 'О'),
+			_Utils_Tuple2('ocy', 'о'),
+			_Utils_Tuple2('odash', '⊝'),
+			_Utils_Tuple2('Odblac', 'Ő'),
+			_Utils_Tuple2('odblac', 'ő'),
+			_Utils_Tuple2('odiv', '⨸'),
+			_Utils_Tuple2('odot', '⊙'),
+			_Utils_Tuple2('odsold', '⦼'),
+			_Utils_Tuple2('OElig', 'Œ'),
+			_Utils_Tuple2('oelig', 'œ'),
+			_Utils_Tuple2('ofcir', '⦿'),
+			_Utils_Tuple2('Ofr', '\uD835\uDD12'),
+			_Utils_Tuple2('ofr', '\uD835\uDD2C'),
+			_Utils_Tuple2('ogon', '˛'),
+			_Utils_Tuple2('Ograve', 'Ò'),
+			_Utils_Tuple2('ograve', 'ò'),
+			_Utils_Tuple2('ogt', '⧁'),
+			_Utils_Tuple2('ohbar', '⦵'),
+			_Utils_Tuple2('ohm', 'Ω'),
+			_Utils_Tuple2('oint', '∮'),
+			_Utils_Tuple2('olarr', '↺'),
+			_Utils_Tuple2('olcir', '⦾'),
+			_Utils_Tuple2('olcross', '⦻'),
+			_Utils_Tuple2('oline', '‾'),
+			_Utils_Tuple2('olt', '⧀'),
+			_Utils_Tuple2('Omacr', 'Ō'),
+			_Utils_Tuple2('omacr', 'ō'),
+			_Utils_Tuple2('Omega', 'Ω'),
+			_Utils_Tuple2('omega', 'ω'),
+			_Utils_Tuple2('Omicron', 'Ο'),
+			_Utils_Tuple2('omicron', 'ο'),
+			_Utils_Tuple2('omid', '⦶'),
+			_Utils_Tuple2('ominus', '⊖'),
+			_Utils_Tuple2('Oopf', '\uD835\uDD46'),
+			_Utils_Tuple2('oopf', '\uD835\uDD60'),
+			_Utils_Tuple2('opar', '⦷'),
+			_Utils_Tuple2('OpenCurlyDoubleQuote', '“'),
+			_Utils_Tuple2('OpenCurlyQuote', '‘'),
+			_Utils_Tuple2('operp', '⦹'),
+			_Utils_Tuple2('oplus', '⊕'),
+			_Utils_Tuple2('orarr', '↻'),
+			_Utils_Tuple2('Or', '⩔'),
+			_Utils_Tuple2('or', '∨'),
+			_Utils_Tuple2('ord', '⩝'),
+			_Utils_Tuple2('order', 'ℴ'),
+			_Utils_Tuple2('orderof', 'ℴ'),
+			_Utils_Tuple2('ordf', 'ª'),
+			_Utils_Tuple2('ordm', 'º'),
+			_Utils_Tuple2('origof', '⊶'),
+			_Utils_Tuple2('oror', '⩖'),
+			_Utils_Tuple2('orslope', '⩗'),
+			_Utils_Tuple2('orv', '⩛'),
+			_Utils_Tuple2('oS', 'Ⓢ'),
+			_Utils_Tuple2('Oscr', '\uD835\uDCAA'),
+			_Utils_Tuple2('oscr', 'ℴ'),
+			_Utils_Tuple2('Oslash', 'Ø'),
+			_Utils_Tuple2('oslash', 'ø'),
+			_Utils_Tuple2('osol', '⊘'),
+			_Utils_Tuple2('Otilde', 'Õ'),
+			_Utils_Tuple2('otilde', 'õ'),
+			_Utils_Tuple2('otimesas', '⨶'),
+			_Utils_Tuple2('Otimes', '⨷'),
+			_Utils_Tuple2('otimes', '⊗'),
+			_Utils_Tuple2('Ouml', 'Ö'),
+			_Utils_Tuple2('ouml', 'ö'),
+			_Utils_Tuple2('ovbar', '⌽'),
+			_Utils_Tuple2('OverBar', '‾'),
+			_Utils_Tuple2('OverBrace', '⏞'),
+			_Utils_Tuple2('OverBracket', '⎴'),
+			_Utils_Tuple2('OverParenthesis', '⏜'),
+			_Utils_Tuple2('para', '¶'),
+			_Utils_Tuple2('parallel', '∥'),
+			_Utils_Tuple2('par', '∥'),
+			_Utils_Tuple2('parsim', '⫳'),
+			_Utils_Tuple2('parsl', '⫽'),
+			_Utils_Tuple2('part', '∂'),
+			_Utils_Tuple2('PartialD', '∂'),
+			_Utils_Tuple2('Pcy', 'П'),
+			_Utils_Tuple2('pcy', 'п'),
+			_Utils_Tuple2('percnt', '%'),
+			_Utils_Tuple2('period', '.'),
+			_Utils_Tuple2('permil', '‰'),
+			_Utils_Tuple2('perp', '⊥'),
+			_Utils_Tuple2('pertenk', '‱'),
+			_Utils_Tuple2('Pfr', '\uD835\uDD13'),
+			_Utils_Tuple2('pfr', '\uD835\uDD2D'),
+			_Utils_Tuple2('Phi', 'Φ'),
+			_Utils_Tuple2('phi', 'φ'),
+			_Utils_Tuple2('phiv', 'ϕ'),
+			_Utils_Tuple2('phmmat', 'ℳ'),
+			_Utils_Tuple2('phone', '☎'),
+			_Utils_Tuple2('Pi', 'Π'),
+			_Utils_Tuple2('pi', 'π'),
+			_Utils_Tuple2('pitchfork', '⋔'),
+			_Utils_Tuple2('piv', 'ϖ'),
+			_Utils_Tuple2('planck', 'ℏ'),
+			_Utils_Tuple2('planckh', 'ℎ'),
+			_Utils_Tuple2('plankv', 'ℏ'),
+			_Utils_Tuple2('plusacir', '⨣'),
+			_Utils_Tuple2('plusb', '⊞'),
+			_Utils_Tuple2('pluscir', '⨢'),
+			_Utils_Tuple2('plus', '+'),
+			_Utils_Tuple2('plusdo', '∔'),
+			_Utils_Tuple2('plusdu', '⨥'),
+			_Utils_Tuple2('pluse', '⩲'),
+			_Utils_Tuple2('PlusMinus', '±'),
+			_Utils_Tuple2('plusmn', '±'),
+			_Utils_Tuple2('plussim', '⨦'),
+			_Utils_Tuple2('plustwo', '⨧'),
+			_Utils_Tuple2('pm', '±'),
+			_Utils_Tuple2('Poincareplane', 'ℌ'),
+			_Utils_Tuple2('pointint', '⨕'),
+			_Utils_Tuple2('popf', '\uD835\uDD61'),
+			_Utils_Tuple2('Popf', 'ℙ'),
+			_Utils_Tuple2('pound', '£'),
+			_Utils_Tuple2('prap', '⪷'),
+			_Utils_Tuple2('Pr', '⪻'),
+			_Utils_Tuple2('pr', '≺'),
+			_Utils_Tuple2('prcue', '≼'),
+			_Utils_Tuple2('precapprox', '⪷'),
+			_Utils_Tuple2('prec', '≺'),
+			_Utils_Tuple2('preccurlyeq', '≼'),
+			_Utils_Tuple2('Precedes', '≺'),
+			_Utils_Tuple2('PrecedesEqual', '⪯'),
+			_Utils_Tuple2('PrecedesSlantEqual', '≼'),
+			_Utils_Tuple2('PrecedesTilde', '≾'),
+			_Utils_Tuple2('preceq', '⪯'),
+			_Utils_Tuple2('precnapprox', '⪹'),
+			_Utils_Tuple2('precneqq', '⪵'),
+			_Utils_Tuple2('precnsim', '⋨'),
+			_Utils_Tuple2('pre', '⪯'),
+			_Utils_Tuple2('prE', '⪳'),
+			_Utils_Tuple2('precsim', '≾'),
+			_Utils_Tuple2('prime', '′'),
+			_Utils_Tuple2('Prime', '″'),
+			_Utils_Tuple2('primes', 'ℙ'),
+			_Utils_Tuple2('prnap', '⪹'),
+			_Utils_Tuple2('prnE', '⪵'),
+			_Utils_Tuple2('prnsim', '⋨'),
+			_Utils_Tuple2('prod', '∏'),
+			_Utils_Tuple2('Product', '∏'),
+			_Utils_Tuple2('profalar', '⌮'),
+			_Utils_Tuple2('profline', '⌒'),
+			_Utils_Tuple2('profsurf', '⌓'),
+			_Utils_Tuple2('prop', '∝'),
+			_Utils_Tuple2('Proportional', '∝'),
+			_Utils_Tuple2('Proportion', '∷'),
+			_Utils_Tuple2('propto', '∝'),
+			_Utils_Tuple2('prsim', '≾'),
+			_Utils_Tuple2('prurel', '⊰'),
+			_Utils_Tuple2('Pscr', '\uD835\uDCAB'),
+			_Utils_Tuple2('pscr', '\uD835\uDCC5'),
+			_Utils_Tuple2('Psi', 'Ψ'),
+			_Utils_Tuple2('psi', 'ψ'),
+			_Utils_Tuple2('puncsp', '\u2008'),
+			_Utils_Tuple2('Qfr', '\uD835\uDD14'),
+			_Utils_Tuple2('qfr', '\uD835\uDD2E'),
+			_Utils_Tuple2('qint', '⨌'),
+			_Utils_Tuple2('qopf', '\uD835\uDD62'),
+			_Utils_Tuple2('Qopf', 'ℚ'),
+			_Utils_Tuple2('qprime', '⁗'),
+			_Utils_Tuple2('Qscr', '\uD835\uDCAC'),
+			_Utils_Tuple2('qscr', '\uD835\uDCC6'),
+			_Utils_Tuple2('quaternions', 'ℍ'),
+			_Utils_Tuple2('quatint', '⨖'),
+			_Utils_Tuple2('quest', '?'),
+			_Utils_Tuple2('questeq', '≟'),
+			_Utils_Tuple2('quot', '\"'),
+			_Utils_Tuple2('QUOT', '\"'),
+			_Utils_Tuple2('rAarr', '⇛'),
+			_Utils_Tuple2('race', '∽̱'),
+			_Utils_Tuple2('Racute', 'Ŕ'),
+			_Utils_Tuple2('racute', 'ŕ'),
+			_Utils_Tuple2('radic', '√'),
+			_Utils_Tuple2('raemptyv', '⦳'),
+			_Utils_Tuple2('rang', '⟩'),
+			_Utils_Tuple2('Rang', '⟫'),
+			_Utils_Tuple2('rangd', '⦒'),
+			_Utils_Tuple2('range', '⦥'),
+			_Utils_Tuple2('rangle', '⟩'),
+			_Utils_Tuple2('raquo', '»'),
+			_Utils_Tuple2('rarrap', '⥵'),
+			_Utils_Tuple2('rarrb', '⇥'),
+			_Utils_Tuple2('rarrbfs', '⤠'),
+			_Utils_Tuple2('rarrc', '⤳'),
+			_Utils_Tuple2('rarr', '→'),
+			_Utils_Tuple2('Rarr', '↠'),
+			_Utils_Tuple2('rArr', '⇒'),
+			_Utils_Tuple2('rarrfs', '⤞'),
+			_Utils_Tuple2('rarrhk', '↪'),
+			_Utils_Tuple2('rarrlp', '↬'),
+			_Utils_Tuple2('rarrpl', '⥅'),
+			_Utils_Tuple2('rarrsim', '⥴'),
+			_Utils_Tuple2('Rarrtl', '⤖'),
+			_Utils_Tuple2('rarrtl', '↣'),
+			_Utils_Tuple2('rarrw', '↝'),
+			_Utils_Tuple2('ratail', '⤚'),
+			_Utils_Tuple2('rAtail', '⤜'),
+			_Utils_Tuple2('ratio', '∶'),
+			_Utils_Tuple2('rationals', 'ℚ'),
+			_Utils_Tuple2('rbarr', '⤍'),
+			_Utils_Tuple2('rBarr', '⤏'),
+			_Utils_Tuple2('RBarr', '⤐'),
+			_Utils_Tuple2('rbbrk', '❳'),
+			_Utils_Tuple2('rbrace', '}'),
+			_Utils_Tuple2('rbrack', ']'),
+			_Utils_Tuple2('rbrke', '⦌'),
+			_Utils_Tuple2('rbrksld', '⦎'),
+			_Utils_Tuple2('rbrkslu', '⦐'),
+			_Utils_Tuple2('Rcaron', 'Ř'),
+			_Utils_Tuple2('rcaron', 'ř'),
+			_Utils_Tuple2('Rcedil', 'Ŗ'),
+			_Utils_Tuple2('rcedil', 'ŗ'),
+			_Utils_Tuple2('rceil', '⌉'),
+			_Utils_Tuple2('rcub', '}'),
+			_Utils_Tuple2('Rcy', 'Р'),
+			_Utils_Tuple2('rcy', 'р'),
+			_Utils_Tuple2('rdca', '⤷'),
+			_Utils_Tuple2('rdldhar', '⥩'),
+			_Utils_Tuple2('rdquo', '”'),
+			_Utils_Tuple2('rdquor', '”'),
+			_Utils_Tuple2('rdsh', '↳'),
+			_Utils_Tuple2('real', 'ℜ'),
+			_Utils_Tuple2('realine', 'ℛ'),
+			_Utils_Tuple2('realpart', 'ℜ'),
+			_Utils_Tuple2('reals', 'ℝ'),
+			_Utils_Tuple2('Re', 'ℜ'),
+			_Utils_Tuple2('rect', '▭'),
+			_Utils_Tuple2('reg', '®'),
+			_Utils_Tuple2('REG', '®'),
+			_Utils_Tuple2('ReverseElement', '∋'),
+			_Utils_Tuple2('ReverseEquilibrium', '⇋'),
+			_Utils_Tuple2('ReverseUpEquilibrium', '⥯'),
+			_Utils_Tuple2('rfisht', '⥽'),
+			_Utils_Tuple2('rfloor', '⌋'),
+			_Utils_Tuple2('rfr', '\uD835\uDD2F'),
+			_Utils_Tuple2('Rfr', 'ℜ'),
+			_Utils_Tuple2('rHar', '⥤'),
+			_Utils_Tuple2('rhard', '⇁'),
+			_Utils_Tuple2('rharu', '⇀'),
+			_Utils_Tuple2('rharul', '⥬'),
+			_Utils_Tuple2('Rho', 'Ρ'),
+			_Utils_Tuple2('rho', 'ρ'),
+			_Utils_Tuple2('rhov', 'ϱ'),
+			_Utils_Tuple2('RightAngleBracket', '⟩'),
+			_Utils_Tuple2('RightArrowBar', '⇥'),
+			_Utils_Tuple2('rightarrow', '→'),
+			_Utils_Tuple2('RightArrow', '→'),
+			_Utils_Tuple2('Rightarrow', '⇒'),
+			_Utils_Tuple2('RightArrowLeftArrow', '⇄'),
+			_Utils_Tuple2('rightarrowtail', '↣'),
+			_Utils_Tuple2('RightCeiling', '⌉'),
+			_Utils_Tuple2('RightDoubleBracket', '⟧'),
+			_Utils_Tuple2('RightDownTeeVector', '⥝'),
+			_Utils_Tuple2('RightDownVectorBar', '⥕'),
+			_Utils_Tuple2('RightDownVector', '⇂'),
+			_Utils_Tuple2('RightFloor', '⌋'),
+			_Utils_Tuple2('rightharpoondown', '⇁'),
+			_Utils_Tuple2('rightharpoonup', '⇀'),
+			_Utils_Tuple2('rightleftarrows', '⇄'),
+			_Utils_Tuple2('rightleftharpoons', '⇌'),
+			_Utils_Tuple2('rightrightarrows', '⇉'),
+			_Utils_Tuple2('rightsquigarrow', '↝'),
+			_Utils_Tuple2('RightTeeArrow', '↦'),
+			_Utils_Tuple2('RightTee', '⊢'),
+			_Utils_Tuple2('RightTeeVector', '⥛'),
+			_Utils_Tuple2('rightthreetimes', '⋌'),
+			_Utils_Tuple2('RightTriangleBar', '⧐'),
+			_Utils_Tuple2('RightTriangle', '⊳'),
+			_Utils_Tuple2('RightTriangleEqual', '⊵'),
+			_Utils_Tuple2('RightUpDownVector', '⥏'),
+			_Utils_Tuple2('RightUpTeeVector', '⥜'),
+			_Utils_Tuple2('RightUpVectorBar', '⥔'),
+			_Utils_Tuple2('RightUpVector', '↾'),
+			_Utils_Tuple2('RightVectorBar', '⥓'),
+			_Utils_Tuple2('RightVector', '⇀'),
+			_Utils_Tuple2('ring', '˚'),
+			_Utils_Tuple2('risingdotseq', '≓'),
+			_Utils_Tuple2('rlarr', '⇄'),
+			_Utils_Tuple2('rlhar', '⇌'),
+			_Utils_Tuple2('rlm', '\u200F'),
+			_Utils_Tuple2('rmoustache', '⎱'),
+			_Utils_Tuple2('rmoust', '⎱'),
+			_Utils_Tuple2('rnmid', '⫮'),
+			_Utils_Tuple2('roang', '⟭'),
+			_Utils_Tuple2('roarr', '⇾'),
+			_Utils_Tuple2('robrk', '⟧'),
+			_Utils_Tuple2('ropar', '⦆'),
+			_Utils_Tuple2('ropf', '\uD835\uDD63'),
+			_Utils_Tuple2('Ropf', 'ℝ'),
+			_Utils_Tuple2('roplus', '⨮'),
+			_Utils_Tuple2('rotimes', '⨵'),
+			_Utils_Tuple2('RoundImplies', '⥰'),
+			_Utils_Tuple2('rpar', ')'),
+			_Utils_Tuple2('rpargt', '⦔'),
+			_Utils_Tuple2('rppolint', '⨒'),
+			_Utils_Tuple2('rrarr', '⇉'),
+			_Utils_Tuple2('Rrightarrow', '⇛'),
+			_Utils_Tuple2('rsaquo', '›'),
+			_Utils_Tuple2('rscr', '\uD835\uDCC7'),
+			_Utils_Tuple2('Rscr', 'ℛ'),
+			_Utils_Tuple2('rsh', '↱'),
+			_Utils_Tuple2('Rsh', '↱'),
+			_Utils_Tuple2('rsqb', ']'),
+			_Utils_Tuple2('rsquo', '’'),
+			_Utils_Tuple2('rsquor', '’'),
+			_Utils_Tuple2('rthree', '⋌'),
+			_Utils_Tuple2('rtimes', '⋊'),
+			_Utils_Tuple2('rtri', '▹'),
+			_Utils_Tuple2('rtrie', '⊵'),
+			_Utils_Tuple2('rtrif', '▸'),
+			_Utils_Tuple2('rtriltri', '⧎'),
+			_Utils_Tuple2('RuleDelayed', '⧴'),
+			_Utils_Tuple2('ruluhar', '⥨'),
+			_Utils_Tuple2('rx', '℞'),
+			_Utils_Tuple2('Sacute', 'Ś'),
+			_Utils_Tuple2('sacute', 'ś'),
+			_Utils_Tuple2('sbquo', '‚'),
+			_Utils_Tuple2('scap', '⪸'),
+			_Utils_Tuple2('Scaron', 'Š'),
+			_Utils_Tuple2('scaron', 'š'),
+			_Utils_Tuple2('Sc', '⪼'),
+			_Utils_Tuple2('sc', '≻'),
+			_Utils_Tuple2('sccue', '≽'),
+			_Utils_Tuple2('sce', '⪰'),
+			_Utils_Tuple2('scE', '⪴'),
+			_Utils_Tuple2('Scedil', 'Ş'),
+			_Utils_Tuple2('scedil', 'ş'),
+			_Utils_Tuple2('Scirc', 'Ŝ'),
+			_Utils_Tuple2('scirc', 'ŝ'),
+			_Utils_Tuple2('scnap', '⪺'),
+			_Utils_Tuple2('scnE', '⪶'),
+			_Utils_Tuple2('scnsim', '⋩'),
+			_Utils_Tuple2('scpolint', '⨓'),
+			_Utils_Tuple2('scsim', '≿'),
+			_Utils_Tuple2('Scy', 'С'),
+			_Utils_Tuple2('scy', 'с'),
+			_Utils_Tuple2('sdotb', '⊡'),
+			_Utils_Tuple2('sdot', '⋅'),
+			_Utils_Tuple2('sdote', '⩦'),
+			_Utils_Tuple2('searhk', '⤥'),
+			_Utils_Tuple2('searr', '↘'),
+			_Utils_Tuple2('seArr', '⇘'),
+			_Utils_Tuple2('searrow', '↘'),
+			_Utils_Tuple2('sect', '§'),
+			_Utils_Tuple2('semi', ';'),
+			_Utils_Tuple2('seswar', '⤩'),
+			_Utils_Tuple2('setminus', '∖'),
+			_Utils_Tuple2('setmn', '∖'),
+			_Utils_Tuple2('sext', '✶'),
+			_Utils_Tuple2('Sfr', '\uD835\uDD16'),
+			_Utils_Tuple2('sfr', '\uD835\uDD30'),
+			_Utils_Tuple2('sfrown', '⌢'),
+			_Utils_Tuple2('sharp', '♯'),
+			_Utils_Tuple2('SHCHcy', 'Щ'),
+			_Utils_Tuple2('shchcy', 'щ'),
+			_Utils_Tuple2('SHcy', 'Ш'),
+			_Utils_Tuple2('shcy', 'ш'),
+			_Utils_Tuple2('ShortDownArrow', '↓'),
+			_Utils_Tuple2('ShortLeftArrow', '←'),
+			_Utils_Tuple2('shortmid', '∣'),
+			_Utils_Tuple2('shortparallel', '∥'),
+			_Utils_Tuple2('ShortRightArrow', '→'),
+			_Utils_Tuple2('ShortUpArrow', '↑'),
+			_Utils_Tuple2('shy', '\u00AD'),
+			_Utils_Tuple2('Sigma', 'Σ'),
+			_Utils_Tuple2('sigma', 'σ'),
+			_Utils_Tuple2('sigmaf', 'ς'),
+			_Utils_Tuple2('sigmav', 'ς'),
+			_Utils_Tuple2('sim', '∼'),
+			_Utils_Tuple2('simdot', '⩪'),
+			_Utils_Tuple2('sime', '≃'),
+			_Utils_Tuple2('simeq', '≃'),
+			_Utils_Tuple2('simg', '⪞'),
+			_Utils_Tuple2('simgE', '⪠'),
+			_Utils_Tuple2('siml', '⪝'),
+			_Utils_Tuple2('simlE', '⪟'),
+			_Utils_Tuple2('simne', '≆'),
+			_Utils_Tuple2('simplus', '⨤'),
+			_Utils_Tuple2('simrarr', '⥲'),
+			_Utils_Tuple2('slarr', '←'),
+			_Utils_Tuple2('SmallCircle', '∘'),
+			_Utils_Tuple2('smallsetminus', '∖'),
+			_Utils_Tuple2('smashp', '⨳'),
+			_Utils_Tuple2('smeparsl', '⧤'),
+			_Utils_Tuple2('smid', '∣'),
+			_Utils_Tuple2('smile', '⌣'),
+			_Utils_Tuple2('smt', '⪪'),
+			_Utils_Tuple2('smte', '⪬'),
+			_Utils_Tuple2('smtes', '⪬︀'),
+			_Utils_Tuple2('SOFTcy', 'Ь'),
+			_Utils_Tuple2('softcy', 'ь'),
+			_Utils_Tuple2('solbar', '⌿'),
+			_Utils_Tuple2('solb', '⧄'),
+			_Utils_Tuple2('sol', '/'),
+			_Utils_Tuple2('Sopf', '\uD835\uDD4A'),
+			_Utils_Tuple2('sopf', '\uD835\uDD64'),
+			_Utils_Tuple2('spades', '♠'),
+			_Utils_Tuple2('spadesuit', '♠'),
+			_Utils_Tuple2('spar', '∥'),
+			_Utils_Tuple2('sqcap', '⊓'),
+			_Utils_Tuple2('sqcaps', '⊓︀'),
+			_Utils_Tuple2('sqcup', '⊔'),
+			_Utils_Tuple2('sqcups', '⊔︀'),
+			_Utils_Tuple2('Sqrt', '√'),
+			_Utils_Tuple2('sqsub', '⊏'),
+			_Utils_Tuple2('sqsube', '⊑'),
+			_Utils_Tuple2('sqsubset', '⊏'),
+			_Utils_Tuple2('sqsubseteq', '⊑'),
+			_Utils_Tuple2('sqsup', '⊐'),
+			_Utils_Tuple2('sqsupe', '⊒'),
+			_Utils_Tuple2('sqsupset', '⊐'),
+			_Utils_Tuple2('sqsupseteq', '⊒'),
+			_Utils_Tuple2('square', '□'),
+			_Utils_Tuple2('Square', '□'),
+			_Utils_Tuple2('SquareIntersection', '⊓'),
+			_Utils_Tuple2('SquareSubset', '⊏'),
+			_Utils_Tuple2('SquareSubsetEqual', '⊑'),
+			_Utils_Tuple2('SquareSuperset', '⊐'),
+			_Utils_Tuple2('SquareSupersetEqual', '⊒'),
+			_Utils_Tuple2('SquareUnion', '⊔'),
+			_Utils_Tuple2('squarf', '▪'),
+			_Utils_Tuple2('squ', '□'),
+			_Utils_Tuple2('squf', '▪'),
+			_Utils_Tuple2('srarr', '→'),
+			_Utils_Tuple2('Sscr', '\uD835\uDCAE'),
+			_Utils_Tuple2('sscr', '\uD835\uDCC8'),
+			_Utils_Tuple2('ssetmn', '∖'),
+			_Utils_Tuple2('ssmile', '⌣'),
+			_Utils_Tuple2('sstarf', '⋆'),
+			_Utils_Tuple2('Star', '⋆'),
+			_Utils_Tuple2('star', '☆'),
+			_Utils_Tuple2('starf', '★'),
+			_Utils_Tuple2('straightepsilon', 'ϵ'),
+			_Utils_Tuple2('straightphi', 'ϕ'),
+			_Utils_Tuple2('strns', '¯'),
+			_Utils_Tuple2('sub', '⊂'),
+			_Utils_Tuple2('Sub', '⋐'),
+			_Utils_Tuple2('subdot', '⪽'),
+			_Utils_Tuple2('subE', '⫅'),
+			_Utils_Tuple2('sube', '⊆'),
+			_Utils_Tuple2('subedot', '⫃'),
+			_Utils_Tuple2('submult', '⫁'),
+			_Utils_Tuple2('subnE', '⫋'),
+			_Utils_Tuple2('subne', '⊊'),
+			_Utils_Tuple2('subplus', '⪿'),
+			_Utils_Tuple2('subrarr', '⥹'),
+			_Utils_Tuple2('subset', '⊂'),
+			_Utils_Tuple2('Subset', '⋐'),
+			_Utils_Tuple2('subseteq', '⊆'),
+			_Utils_Tuple2('subseteqq', '⫅'),
+			_Utils_Tuple2('SubsetEqual', '⊆'),
+			_Utils_Tuple2('subsetneq', '⊊'),
+			_Utils_Tuple2('subsetneqq', '⫋'),
+			_Utils_Tuple2('subsim', '⫇'),
+			_Utils_Tuple2('subsub', '⫕'),
+			_Utils_Tuple2('subsup', '⫓'),
+			_Utils_Tuple2('succapprox', '⪸'),
+			_Utils_Tuple2('succ', '≻'),
+			_Utils_Tuple2('succcurlyeq', '≽'),
+			_Utils_Tuple2('Succeeds', '≻'),
+			_Utils_Tuple2('SucceedsEqual', '⪰'),
+			_Utils_Tuple2('SucceedsSlantEqual', '≽'),
+			_Utils_Tuple2('SucceedsTilde', '≿'),
+			_Utils_Tuple2('succeq', '⪰'),
+			_Utils_Tuple2('succnapprox', '⪺'),
+			_Utils_Tuple2('succneqq', '⪶'),
+			_Utils_Tuple2('succnsim', '⋩'),
+			_Utils_Tuple2('succsim', '≿'),
+			_Utils_Tuple2('SuchThat', '∋'),
+			_Utils_Tuple2('sum', '∑'),
+			_Utils_Tuple2('Sum', '∑'),
+			_Utils_Tuple2('sung', '♪'),
+			_Utils_Tuple2('sup1', '¹'),
+			_Utils_Tuple2('sup2', '²'),
+			_Utils_Tuple2('sup3', '³'),
+			_Utils_Tuple2('sup', '⊃'),
+			_Utils_Tuple2('Sup', '⋑'),
+			_Utils_Tuple2('supdot', '⪾'),
+			_Utils_Tuple2('supdsub', '⫘'),
+			_Utils_Tuple2('supE', '⫆'),
+			_Utils_Tuple2('supe', '⊇'),
+			_Utils_Tuple2('supedot', '⫄'),
+			_Utils_Tuple2('Superset', '⊃'),
+			_Utils_Tuple2('SupersetEqual', '⊇'),
+			_Utils_Tuple2('suphsol', '⟉'),
+			_Utils_Tuple2('suphsub', '⫗'),
+			_Utils_Tuple2('suplarr', '⥻'),
+			_Utils_Tuple2('supmult', '⫂'),
+			_Utils_Tuple2('supnE', '⫌'),
+			_Utils_Tuple2('supne', '⊋'),
+			_Utils_Tuple2('supplus', '⫀'),
+			_Utils_Tuple2('supset', '⊃'),
+			_Utils_Tuple2('Supset', '⋑'),
+			_Utils_Tuple2('supseteq', '⊇'),
+			_Utils_Tuple2('supseteqq', '⫆'),
+			_Utils_Tuple2('supsetneq', '⊋'),
+			_Utils_Tuple2('supsetneqq', '⫌'),
+			_Utils_Tuple2('supsim', '⫈'),
+			_Utils_Tuple2('supsub', '⫔'),
+			_Utils_Tuple2('supsup', '⫖'),
+			_Utils_Tuple2('swarhk', '⤦'),
+			_Utils_Tuple2('swarr', '↙'),
+			_Utils_Tuple2('swArr', '⇙'),
+			_Utils_Tuple2('swarrow', '↙'),
+			_Utils_Tuple2('swnwar', '⤪'),
+			_Utils_Tuple2('szlig', 'ß'),
+			_Utils_Tuple2('Tab', '\t'),
+			_Utils_Tuple2('target', '⌖'),
+			_Utils_Tuple2('Tau', 'Τ'),
+			_Utils_Tuple2('tau', 'τ'),
+			_Utils_Tuple2('tbrk', '⎴'),
+			_Utils_Tuple2('Tcaron', 'Ť'),
+			_Utils_Tuple2('tcaron', 'ť'),
+			_Utils_Tuple2('Tcedil', 'Ţ'),
+			_Utils_Tuple2('tcedil', 'ţ'),
+			_Utils_Tuple2('Tcy', 'Т'),
+			_Utils_Tuple2('tcy', 'т'),
+			_Utils_Tuple2('tdot', '⃛'),
+			_Utils_Tuple2('telrec', '⌕'),
+			_Utils_Tuple2('Tfr', '\uD835\uDD17'),
+			_Utils_Tuple2('tfr', '\uD835\uDD31'),
+			_Utils_Tuple2('there4', '∴'),
+			_Utils_Tuple2('therefore', '∴'),
+			_Utils_Tuple2('Therefore', '∴'),
+			_Utils_Tuple2('Theta', 'Θ'),
+			_Utils_Tuple2('theta', 'θ'),
+			_Utils_Tuple2('thetasym', 'ϑ'),
+			_Utils_Tuple2('thetav', 'ϑ'),
+			_Utils_Tuple2('thickapprox', '≈'),
+			_Utils_Tuple2('thicksim', '∼'),
+			_Utils_Tuple2('ThickSpace', '\u205F\u200A'),
+			_Utils_Tuple2('ThinSpace', '\u2009'),
+			_Utils_Tuple2('thinsp', '\u2009'),
+			_Utils_Tuple2('thkap', '≈'),
+			_Utils_Tuple2('thksim', '∼'),
+			_Utils_Tuple2('THORN', 'Þ'),
+			_Utils_Tuple2('thorn', 'þ'),
+			_Utils_Tuple2('tilde', '˜'),
+			_Utils_Tuple2('Tilde', '∼'),
+			_Utils_Tuple2('TildeEqual', '≃'),
+			_Utils_Tuple2('TildeFullEqual', '≅'),
+			_Utils_Tuple2('TildeTilde', '≈'),
+			_Utils_Tuple2('timesbar', '⨱'),
+			_Utils_Tuple2('timesb', '⊠'),
+			_Utils_Tuple2('times', '×'),
+			_Utils_Tuple2('timesd', '⨰'),
+			_Utils_Tuple2('tint', '∭'),
+			_Utils_Tuple2('toea', '⤨'),
+			_Utils_Tuple2('topbot', '⌶'),
+			_Utils_Tuple2('topcir', '⫱'),
+			_Utils_Tuple2('top', '⊤'),
+			_Utils_Tuple2('Topf', '\uD835\uDD4B'),
+			_Utils_Tuple2('topf', '\uD835\uDD65'),
+			_Utils_Tuple2('topfork', '⫚'),
+			_Utils_Tuple2('tosa', '⤩'),
+			_Utils_Tuple2('tprime', '‴'),
+			_Utils_Tuple2('trade', '™'),
+			_Utils_Tuple2('TRADE', '™'),
+			_Utils_Tuple2('triangle', '▵'),
+			_Utils_Tuple2('triangledown', '▿'),
+			_Utils_Tuple2('triangleleft', '◃'),
+			_Utils_Tuple2('trianglelefteq', '⊴'),
+			_Utils_Tuple2('triangleq', '≜'),
+			_Utils_Tuple2('triangleright', '▹'),
+			_Utils_Tuple2('trianglerighteq', '⊵'),
+			_Utils_Tuple2('tridot', '◬'),
+			_Utils_Tuple2('trie', '≜'),
+			_Utils_Tuple2('triminus', '⨺'),
+			_Utils_Tuple2('TripleDot', '⃛'),
+			_Utils_Tuple2('triplus', '⨹'),
+			_Utils_Tuple2('trisb', '⧍'),
+			_Utils_Tuple2('tritime', '⨻'),
+			_Utils_Tuple2('trpezium', '⏢'),
+			_Utils_Tuple2('Tscr', '\uD835\uDCAF'),
+			_Utils_Tuple2('tscr', '\uD835\uDCC9'),
+			_Utils_Tuple2('TScy', 'Ц'),
+			_Utils_Tuple2('tscy', 'ц'),
+			_Utils_Tuple2('TSHcy', 'Ћ'),
+			_Utils_Tuple2('tshcy', 'ћ'),
+			_Utils_Tuple2('Tstrok', 'Ŧ'),
+			_Utils_Tuple2('tstrok', 'ŧ'),
+			_Utils_Tuple2('twixt', '≬'),
+			_Utils_Tuple2('twoheadleftarrow', '↞'),
+			_Utils_Tuple2('twoheadrightarrow', '↠'),
+			_Utils_Tuple2('Uacute', 'Ú'),
+			_Utils_Tuple2('uacute', 'ú'),
+			_Utils_Tuple2('uarr', '↑'),
+			_Utils_Tuple2('Uarr', '↟'),
+			_Utils_Tuple2('uArr', '⇑'),
+			_Utils_Tuple2('Uarrocir', '⥉'),
+			_Utils_Tuple2('Ubrcy', 'Ў'),
+			_Utils_Tuple2('ubrcy', 'ў'),
+			_Utils_Tuple2('Ubreve', 'Ŭ'),
+			_Utils_Tuple2('ubreve', 'ŭ'),
+			_Utils_Tuple2('Ucirc', 'Û'),
+			_Utils_Tuple2('ucirc', 'û'),
+			_Utils_Tuple2('Ucy', 'У'),
+			_Utils_Tuple2('ucy', 'у'),
+			_Utils_Tuple2('udarr', '⇅'),
+			_Utils_Tuple2('Udblac', 'Ű'),
+			_Utils_Tuple2('udblac', 'ű'),
+			_Utils_Tuple2('udhar', '⥮'),
+			_Utils_Tuple2('ufisht', '⥾'),
+			_Utils_Tuple2('Ufr', '\uD835\uDD18'),
+			_Utils_Tuple2('ufr', '\uD835\uDD32'),
+			_Utils_Tuple2('Ugrave', 'Ù'),
+			_Utils_Tuple2('ugrave', 'ù'),
+			_Utils_Tuple2('uHar', '⥣'),
+			_Utils_Tuple2('uharl', '↿'),
+			_Utils_Tuple2('uharr', '↾'),
+			_Utils_Tuple2('uhblk', '▀'),
+			_Utils_Tuple2('ulcorn', '⌜'),
+			_Utils_Tuple2('ulcorner', '⌜'),
+			_Utils_Tuple2('ulcrop', '⌏'),
+			_Utils_Tuple2('ultri', '◸'),
+			_Utils_Tuple2('Umacr', 'Ū'),
+			_Utils_Tuple2('umacr', 'ū'),
+			_Utils_Tuple2('uml', '¨'),
+			_Utils_Tuple2('UnderBar', '_'),
+			_Utils_Tuple2('UnderBrace', '⏟'),
+			_Utils_Tuple2('UnderBracket', '⎵'),
+			_Utils_Tuple2('UnderParenthesis', '⏝'),
+			_Utils_Tuple2('Union', '⋃'),
+			_Utils_Tuple2('UnionPlus', '⊎'),
+			_Utils_Tuple2('Uogon', 'Ų'),
+			_Utils_Tuple2('uogon', 'ų'),
+			_Utils_Tuple2('Uopf', '\uD835\uDD4C'),
+			_Utils_Tuple2('uopf', '\uD835\uDD66'),
+			_Utils_Tuple2('UpArrowBar', '⤒'),
+			_Utils_Tuple2('uparrow', '↑'),
+			_Utils_Tuple2('UpArrow', '↑'),
+			_Utils_Tuple2('Uparrow', '⇑'),
+			_Utils_Tuple2('UpArrowDownArrow', '⇅'),
+			_Utils_Tuple2('updownarrow', '↕'),
+			_Utils_Tuple2('UpDownArrow', '↕'),
+			_Utils_Tuple2('Updownarrow', '⇕'),
+			_Utils_Tuple2('UpEquilibrium', '⥮'),
+			_Utils_Tuple2('upharpoonleft', '↿'),
+			_Utils_Tuple2('upharpoonright', '↾'),
+			_Utils_Tuple2('uplus', '⊎'),
+			_Utils_Tuple2('UpperLeftArrow', '↖'),
+			_Utils_Tuple2('UpperRightArrow', '↗'),
+			_Utils_Tuple2('upsi', 'υ'),
+			_Utils_Tuple2('Upsi', 'ϒ'),
+			_Utils_Tuple2('upsih', 'ϒ'),
+			_Utils_Tuple2('Upsilon', 'Υ'),
+			_Utils_Tuple2('upsilon', 'υ'),
+			_Utils_Tuple2('UpTeeArrow', '↥'),
+			_Utils_Tuple2('UpTee', '⊥'),
+			_Utils_Tuple2('upuparrows', '⇈'),
+			_Utils_Tuple2('urcorn', '⌝'),
+			_Utils_Tuple2('urcorner', '⌝'),
+			_Utils_Tuple2('urcrop', '⌎'),
+			_Utils_Tuple2('Uring', 'Ů'),
+			_Utils_Tuple2('uring', 'ů'),
+			_Utils_Tuple2('urtri', '◹'),
+			_Utils_Tuple2('Uscr', '\uD835\uDCB0'),
+			_Utils_Tuple2('uscr', '\uD835\uDCCA'),
+			_Utils_Tuple2('utdot', '⋰'),
+			_Utils_Tuple2('Utilde', 'Ũ'),
+			_Utils_Tuple2('utilde', 'ũ'),
+			_Utils_Tuple2('utri', '▵'),
+			_Utils_Tuple2('utrif', '▴'),
+			_Utils_Tuple2('uuarr', '⇈'),
+			_Utils_Tuple2('Uuml', 'Ü'),
+			_Utils_Tuple2('uuml', 'ü'),
+			_Utils_Tuple2('uwangle', '⦧'),
+			_Utils_Tuple2('vangrt', '⦜'),
+			_Utils_Tuple2('varepsilon', 'ϵ'),
+			_Utils_Tuple2('varkappa', 'ϰ'),
+			_Utils_Tuple2('varnothing', '∅'),
+			_Utils_Tuple2('varphi', 'ϕ'),
+			_Utils_Tuple2('varpi', 'ϖ'),
+			_Utils_Tuple2('varpropto', '∝'),
+			_Utils_Tuple2('varr', '↕'),
+			_Utils_Tuple2('vArr', '⇕'),
+			_Utils_Tuple2('varrho', 'ϱ'),
+			_Utils_Tuple2('varsigma', 'ς'),
+			_Utils_Tuple2('varsubsetneq', '⊊︀'),
+			_Utils_Tuple2('varsubsetneqq', '⫋︀'),
+			_Utils_Tuple2('varsupsetneq', '⊋︀'),
+			_Utils_Tuple2('varsupsetneqq', '⫌︀'),
+			_Utils_Tuple2('vartheta', 'ϑ'),
+			_Utils_Tuple2('vartriangleleft', '⊲'),
+			_Utils_Tuple2('vartriangleright', '⊳'),
+			_Utils_Tuple2('vBar', '⫨'),
+			_Utils_Tuple2('Vbar', '⫫'),
+			_Utils_Tuple2('vBarv', '⫩'),
+			_Utils_Tuple2('Vcy', 'В'),
+			_Utils_Tuple2('vcy', 'в'),
+			_Utils_Tuple2('vdash', '⊢'),
+			_Utils_Tuple2('vDash', '⊨'),
+			_Utils_Tuple2('Vdash', '⊩'),
+			_Utils_Tuple2('VDash', '⊫'),
+			_Utils_Tuple2('Vdashl', '⫦'),
+			_Utils_Tuple2('veebar', '⊻'),
+			_Utils_Tuple2('vee', '∨'),
+			_Utils_Tuple2('Vee', '⋁'),
+			_Utils_Tuple2('veeeq', '≚'),
+			_Utils_Tuple2('vellip', '⋮'),
+			_Utils_Tuple2('verbar', '|'),
+			_Utils_Tuple2('Verbar', '‖'),
+			_Utils_Tuple2('vert', '|'),
+			_Utils_Tuple2('Vert', '‖'),
+			_Utils_Tuple2('VerticalBar', '∣'),
+			_Utils_Tuple2('VerticalLine', '|'),
+			_Utils_Tuple2('VerticalSeparator', '❘'),
+			_Utils_Tuple2('VerticalTilde', '≀'),
+			_Utils_Tuple2('VeryThinSpace', '\u200A'),
+			_Utils_Tuple2('Vfr', '\uD835\uDD19'),
+			_Utils_Tuple2('vfr', '\uD835\uDD33'),
+			_Utils_Tuple2('vltri', '⊲'),
+			_Utils_Tuple2('vnsub', '⊂⃒'),
+			_Utils_Tuple2('vnsup', '⊃⃒'),
+			_Utils_Tuple2('Vopf', '\uD835\uDD4D'),
+			_Utils_Tuple2('vopf', '\uD835\uDD67'),
+			_Utils_Tuple2('vprop', '∝'),
+			_Utils_Tuple2('vrtri', '⊳'),
+			_Utils_Tuple2('Vscr', '\uD835\uDCB1'),
+			_Utils_Tuple2('vscr', '\uD835\uDCCB'),
+			_Utils_Tuple2('vsubnE', '⫋︀'),
+			_Utils_Tuple2('vsubne', '⊊︀'),
+			_Utils_Tuple2('vsupnE', '⫌︀'),
+			_Utils_Tuple2('vsupne', '⊋︀'),
+			_Utils_Tuple2('Vvdash', '⊪'),
+			_Utils_Tuple2('vzigzag', '⦚'),
+			_Utils_Tuple2('Wcirc', 'Ŵ'),
+			_Utils_Tuple2('wcirc', 'ŵ'),
+			_Utils_Tuple2('wedbar', '⩟'),
+			_Utils_Tuple2('wedge', '∧'),
+			_Utils_Tuple2('Wedge', '⋀'),
+			_Utils_Tuple2('wedgeq', '≙'),
+			_Utils_Tuple2('weierp', '℘'),
+			_Utils_Tuple2('Wfr', '\uD835\uDD1A'),
+			_Utils_Tuple2('wfr', '\uD835\uDD34'),
+			_Utils_Tuple2('Wopf', '\uD835\uDD4E'),
+			_Utils_Tuple2('wopf', '\uD835\uDD68'),
+			_Utils_Tuple2('wp', '℘'),
+			_Utils_Tuple2('wr', '≀'),
+			_Utils_Tuple2('wreath', '≀'),
+			_Utils_Tuple2('Wscr', '\uD835\uDCB2'),
+			_Utils_Tuple2('wscr', '\uD835\uDCCC'),
+			_Utils_Tuple2('xcap', '⋂'),
+			_Utils_Tuple2('xcirc', '◯'),
+			_Utils_Tuple2('xcup', '⋃'),
+			_Utils_Tuple2('xdtri', '▽'),
+			_Utils_Tuple2('Xfr', '\uD835\uDD1B'),
+			_Utils_Tuple2('xfr', '\uD835\uDD35'),
+			_Utils_Tuple2('xharr', '⟷'),
+			_Utils_Tuple2('xhArr', '⟺'),
+			_Utils_Tuple2('Xi', 'Ξ'),
+			_Utils_Tuple2('xi', 'ξ'),
+			_Utils_Tuple2('xlarr', '⟵'),
+			_Utils_Tuple2('xlArr', '⟸'),
+			_Utils_Tuple2('xmap', '⟼'),
+			_Utils_Tuple2('xnis', '⋻'),
+			_Utils_Tuple2('xodot', '⨀'),
+			_Utils_Tuple2('Xopf', '\uD835\uDD4F'),
+			_Utils_Tuple2('xopf', '\uD835\uDD69'),
+			_Utils_Tuple2('xoplus', '⨁'),
+			_Utils_Tuple2('xotime', '⨂'),
+			_Utils_Tuple2('xrarr', '⟶'),
+			_Utils_Tuple2('xrArr', '⟹'),
+			_Utils_Tuple2('Xscr', '\uD835\uDCB3'),
+			_Utils_Tuple2('xscr', '\uD835\uDCCD'),
+			_Utils_Tuple2('xsqcup', '⨆'),
+			_Utils_Tuple2('xuplus', '⨄'),
+			_Utils_Tuple2('xutri', '△'),
+			_Utils_Tuple2('xvee', '⋁'),
+			_Utils_Tuple2('xwedge', '⋀'),
+			_Utils_Tuple2('Yacute', 'Ý'),
+			_Utils_Tuple2('yacute', 'ý'),
+			_Utils_Tuple2('YAcy', 'Я'),
+			_Utils_Tuple2('yacy', 'я'),
+			_Utils_Tuple2('Ycirc', 'Ŷ'),
+			_Utils_Tuple2('ycirc', 'ŷ'),
+			_Utils_Tuple2('Ycy', 'Ы'),
+			_Utils_Tuple2('ycy', 'ы'),
+			_Utils_Tuple2('yen', '¥'),
+			_Utils_Tuple2('Yfr', '\uD835\uDD1C'),
+			_Utils_Tuple2('yfr', '\uD835\uDD36'),
+			_Utils_Tuple2('YIcy', 'Ї'),
+			_Utils_Tuple2('yicy', 'ї'),
+			_Utils_Tuple2('Yopf', '\uD835\uDD50'),
+			_Utils_Tuple2('yopf', '\uD835\uDD6A'),
+			_Utils_Tuple2('Yscr', '\uD835\uDCB4'),
+			_Utils_Tuple2('yscr', '\uD835\uDCCE'),
+			_Utils_Tuple2('YUcy', 'Ю'),
+			_Utils_Tuple2('yucy', 'ю'),
+			_Utils_Tuple2('yuml', 'ÿ'),
+			_Utils_Tuple2('Yuml', 'Ÿ'),
+			_Utils_Tuple2('Zacute', 'Ź'),
+			_Utils_Tuple2('zacute', 'ź'),
+			_Utils_Tuple2('Zcaron', 'Ž'),
+			_Utils_Tuple2('zcaron', 'ž'),
+			_Utils_Tuple2('Zcy', 'З'),
+			_Utils_Tuple2('zcy', 'з'),
+			_Utils_Tuple2('Zdot', 'Ż'),
+			_Utils_Tuple2('zdot', 'ż'),
+			_Utils_Tuple2('zeetrf', 'ℨ'),
+			_Utils_Tuple2('ZeroWidthSpace', '\u200B'),
+			_Utils_Tuple2('Zeta', 'Ζ'),
+			_Utils_Tuple2('zeta', 'ζ'),
+			_Utils_Tuple2('zfr', '\uD835\uDD37'),
+			_Utils_Tuple2('Zfr', 'ℨ'),
+			_Utils_Tuple2('ZHcy', 'Ж'),
+			_Utils_Tuple2('zhcy', 'ж'),
+			_Utils_Tuple2('zigrarr', '⇝'),
+			_Utils_Tuple2('zopf', '\uD835\uDD6B'),
+			_Utils_Tuple2('Zopf', 'ℤ'),
+			_Utils_Tuple2('Zscr', '\uD835\uDCB5'),
+			_Utils_Tuple2('zscr', '\uD835\uDCCF'),
+			_Utils_Tuple2('zwj', '\u200D'),
+			_Utils_Tuple2('zwnj', '\u200C')
+		]));
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $hecrj$html_parser$Html$Parser$namedCharacterReference = A2(
+	$elm$parser$Parser$map,
+	function (reference) {
+		return A2(
+			$elm$core$Maybe$withDefault,
+			'&' + (reference + ';'),
+			A2($elm$core$Dict$get, reference, $hecrj$html_parser$Html$Parser$NamedCharacterReferences$dict));
+	},
+	$elm$parser$Parser$getChompedString(
+		$hecrj$html_parser$Html$Parser$chompOneOrMore($elm$core$Char$isAlpha)));
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
+var $elm$core$Char$fromCode = _Char_fromCode;
+var $elm$core$Basics$pow = _Basics_pow;
+var $rtfeldman$elm_hex$Hex$fromStringHelp = F3(
+	function (position, chars, accumulated) {
+		fromStringHelp:
+		while (true) {
+			if (!chars.b) {
+				return $elm$core$Result$Ok(accumulated);
+			} else {
+				var _char = chars.a;
+				var rest = chars.b;
+				switch (_char.valueOf()) {
+					case '0':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated;
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '1':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + A2($elm$core$Basics$pow, 16, position);
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '2':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (2 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '3':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (3 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '4':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (4 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '5':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (5 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '6':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (6 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '7':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (7 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '8':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (8 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case '9':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (9 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'a':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (10 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'b':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (11 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'c':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (12 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'd':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (13 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'e':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (14 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					case 'f':
+						var $temp$position = position - 1,
+							$temp$chars = rest,
+							$temp$accumulated = accumulated + (15 * A2($elm$core$Basics$pow, 16, position));
+						position = $temp$position;
+						chars = $temp$chars;
+						accumulated = $temp$accumulated;
+						continue fromStringHelp;
+					default:
+						var nonHex = _char;
+						return $elm$core$Result$Err(
+							$elm$core$String$fromChar(nonHex) + ' is not a valid hexadecimal character.');
+				}
+			}
+		}
+	});
+var $elm$core$List$tail = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(xs);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$String$foldr = _String_foldr;
+var $elm$core$String$toList = function (string) {
+	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
+};
+var $rtfeldman$elm_hex$Hex$fromString = function (str) {
+	if ($elm$core$String$isEmpty(str)) {
+		return $elm$core$Result$Err('Empty strings are not valid hexadecimal strings.');
+	} else {
+		var result = function () {
+			if (A2($elm$core$String$startsWith, '-', str)) {
+				var list = A2(
+					$elm$core$Maybe$withDefault,
+					_List_Nil,
+					$elm$core$List$tail(
+						$elm$core$String$toList(str)));
+				return A2(
+					$elm$core$Result$map,
+					$elm$core$Basics$negate,
+					A3(
+						$rtfeldman$elm_hex$Hex$fromStringHelp,
+						$elm$core$List$length(list) - 1,
+						list,
+						0));
+			} else {
+				return A3(
+					$rtfeldman$elm_hex$Hex$fromStringHelp,
+					$elm$core$String$length(str) - 1,
+					$elm$core$String$toList(str),
+					0);
+			}
+		}();
+		var formatError = function (err) {
+			return A2(
+				$elm$core$String$join,
+				' ',
+				_List_fromArray(
+					['\"' + (str + '\"'), 'is not a valid hexadecimal string because', err]));
+		};
+		return A2($elm$core$Result$mapError, formatError, result);
+	}
+};
+var $elm$core$Char$isHexDigit = function (_char) {
+	var code = $elm$core$Char$toCode(_char);
+	return ((48 <= code) && (code <= 57)) || (((65 <= code) && (code <= 70)) || ((97 <= code) && (code <= 102)));
+};
+var $hecrj$html_parser$Html$Parser$hexadecimal = A2(
+	$elm$parser$Parser$andThen,
+	function (hex) {
+		var _v0 = $rtfeldman$elm_hex$Hex$fromString(
+			$elm$core$String$toLower(hex));
+		if (_v0.$ === 'Ok') {
+			var value = _v0.a;
+			return $elm$parser$Parser$succeed(value);
+		} else {
+			var error = _v0.a;
+			return $elm$parser$Parser$problem(error);
+		}
+	},
+	$elm$parser$Parser$getChompedString(
+		$hecrj$html_parser$Html$Parser$chompOneOrMore($elm$core$Char$isHexDigit)));
+var $elm$parser$Parser$ExpectingInt = {$: 'ExpectingInt'};
+var $elm$parser$Parser$Advanced$consumeBase = _Parser_consumeBase;
+var $elm$parser$Parser$Advanced$consumeBase16 = _Parser_consumeBase16;
+var $elm$parser$Parser$Advanced$bumpOffset = F2(
+	function (newOffset, s) {
+		return {col: s.col + (newOffset - s.offset), context: s.context, indent: s.indent, offset: newOffset, row: s.row, src: s.src};
+	});
+var $elm$parser$Parser$Advanced$chompBase10 = _Parser_chompBase10;
+var $elm$parser$Parser$Advanced$isAsciiCode = _Parser_isAsciiCode;
+var $elm$parser$Parser$Advanced$consumeExp = F2(
+	function (offset, src) {
+		if (A3($elm$parser$Parser$Advanced$isAsciiCode, 101, offset, src) || A3($elm$parser$Parser$Advanced$isAsciiCode, 69, offset, src)) {
+			var eOffset = offset + 1;
+			var expOffset = (A3($elm$parser$Parser$Advanced$isAsciiCode, 43, eOffset, src) || A3($elm$parser$Parser$Advanced$isAsciiCode, 45, eOffset, src)) ? (eOffset + 1) : eOffset;
+			var newOffset = A2($elm$parser$Parser$Advanced$chompBase10, expOffset, src);
+			return _Utils_eq(expOffset, newOffset) ? (-newOffset) : newOffset;
+		} else {
+			return offset;
+		}
+	});
+var $elm$parser$Parser$Advanced$consumeDotAndExp = F2(
+	function (offset, src) {
+		return A3($elm$parser$Parser$Advanced$isAsciiCode, 46, offset, src) ? A2(
+			$elm$parser$Parser$Advanced$consumeExp,
+			A2($elm$parser$Parser$Advanced$chompBase10, offset + 1, src),
+			src) : A2($elm$parser$Parser$Advanced$consumeExp, offset, src);
+	});
+var $elm$parser$Parser$Advanced$finalizeInt = F5(
+	function (invalid, handler, startOffset, _v0, s) {
+		var endOffset = _v0.a;
+		var n = _v0.b;
+		if (handler.$ === 'Err') {
+			var x = handler.a;
+			return A2(
+				$elm$parser$Parser$Advanced$Bad,
+				true,
+				A2($elm$parser$Parser$Advanced$fromState, s, x));
+		} else {
+			var toValue = handler.a;
+			return _Utils_eq(startOffset, endOffset) ? A2(
+				$elm$parser$Parser$Advanced$Bad,
+				_Utils_cmp(s.offset, startOffset) < 0,
+				A2($elm$parser$Parser$Advanced$fromState, s, invalid)) : A3(
+				$elm$parser$Parser$Advanced$Good,
+				true,
+				toValue(n),
+				A2($elm$parser$Parser$Advanced$bumpOffset, endOffset, s));
+		}
+	});
+var $elm$parser$Parser$Advanced$finalizeFloat = F6(
+	function (invalid, expecting, intSettings, floatSettings, intPair, s) {
+		var intOffset = intPair.a;
+		var floatOffset = A2($elm$parser$Parser$Advanced$consumeDotAndExp, intOffset, s.src);
+		if (floatOffset < 0) {
+			return A2(
+				$elm$parser$Parser$Advanced$Bad,
+				true,
+				A4($elm$parser$Parser$Advanced$fromInfo, s.row, s.col - (floatOffset + s.offset), invalid, s.context));
+		} else {
+			if (_Utils_eq(s.offset, floatOffset)) {
+				return A2(
+					$elm$parser$Parser$Advanced$Bad,
+					false,
+					A2($elm$parser$Parser$Advanced$fromState, s, expecting));
+			} else {
+				if (_Utils_eq(intOffset, floatOffset)) {
+					return A5($elm$parser$Parser$Advanced$finalizeInt, invalid, intSettings, s.offset, intPair, s);
+				} else {
+					if (floatSettings.$ === 'Err') {
+						var x = floatSettings.a;
+						return A2(
+							$elm$parser$Parser$Advanced$Bad,
+							true,
+							A2($elm$parser$Parser$Advanced$fromState, s, invalid));
+					} else {
+						var toValue = floatSettings.a;
+						var _v1 = $elm$core$String$toFloat(
+							A3($elm$core$String$slice, s.offset, floatOffset, s.src));
+						if (_v1.$ === 'Nothing') {
+							return A2(
+								$elm$parser$Parser$Advanced$Bad,
+								true,
+								A2($elm$parser$Parser$Advanced$fromState, s, invalid));
+						} else {
+							var n = _v1.a;
+							return A3(
+								$elm$parser$Parser$Advanced$Good,
+								true,
+								toValue(n),
+								A2($elm$parser$Parser$Advanced$bumpOffset, floatOffset, s));
+						}
+					}
+				}
+			}
+		}
+	});
+var $elm$parser$Parser$Advanced$number = function (c) {
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			if (A3($elm$parser$Parser$Advanced$isAsciiCode, 48, s.offset, s.src)) {
+				var zeroOffset = s.offset + 1;
+				var baseOffset = zeroOffset + 1;
+				return A3($elm$parser$Parser$Advanced$isAsciiCode, 120, zeroOffset, s.src) ? A5(
+					$elm$parser$Parser$Advanced$finalizeInt,
+					c.invalid,
+					c.hex,
+					baseOffset,
+					A2($elm$parser$Parser$Advanced$consumeBase16, baseOffset, s.src),
+					s) : (A3($elm$parser$Parser$Advanced$isAsciiCode, 111, zeroOffset, s.src) ? A5(
+					$elm$parser$Parser$Advanced$finalizeInt,
+					c.invalid,
+					c.octal,
+					baseOffset,
+					A3($elm$parser$Parser$Advanced$consumeBase, 8, baseOffset, s.src),
+					s) : (A3($elm$parser$Parser$Advanced$isAsciiCode, 98, zeroOffset, s.src) ? A5(
+					$elm$parser$Parser$Advanced$finalizeInt,
+					c.invalid,
+					c.binary,
+					baseOffset,
+					A3($elm$parser$Parser$Advanced$consumeBase, 2, baseOffset, s.src),
+					s) : A6(
+					$elm$parser$Parser$Advanced$finalizeFloat,
+					c.invalid,
+					c.expecting,
+					c._int,
+					c._float,
+					_Utils_Tuple2(zeroOffset, 0),
+					s)));
+			} else {
+				return A6(
+					$elm$parser$Parser$Advanced$finalizeFloat,
+					c.invalid,
+					c.expecting,
+					c._int,
+					c._float,
+					A3($elm$parser$Parser$Advanced$consumeBase, 10, s.offset, s.src),
+					s);
+			}
+		});
+};
+var $elm$parser$Parser$Advanced$int = F2(
+	function (expecting, invalid) {
+		return $elm$parser$Parser$Advanced$number(
+			{
+				binary: $elm$core$Result$Err(invalid),
+				expecting: expecting,
+				_float: $elm$core$Result$Err(invalid),
+				hex: $elm$core$Result$Err(invalid),
+				_int: $elm$core$Result$Ok($elm$core$Basics$identity),
+				invalid: invalid,
+				octal: $elm$core$Result$Err(invalid)
+			});
+	});
+var $elm$parser$Parser$int = A2($elm$parser$Parser$Advanced$int, $elm$parser$Parser$ExpectingInt, $elm$parser$Parser$ExpectingInt);
+var $hecrj$html_parser$Html$Parser$numericCharacterReference = function () {
+	var codepoint = $elm$parser$Parser$oneOf(
+		_List_fromArray(
+			[
+				A2(
+				$elm$parser$Parser$keeper,
+				A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed($elm$core$Basics$identity),
+					$elm$parser$Parser$chompIf(
+						function (c) {
+							return _Utils_eq(
+								c,
+								_Utils_chr('x')) || _Utils_eq(
+								c,
+								_Utils_chr('X'));
+						})),
+				$hecrj$html_parser$Html$Parser$hexadecimal),
+				A2(
+				$elm$parser$Parser$keeper,
+				A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed($elm$core$Basics$identity),
+					$elm$parser$Parser$chompWhile(
+						$elm$core$Basics$eq(
+							_Utils_chr('0')))),
+				$elm$parser$Parser$int)
+			]));
+	return A2(
+		$elm$parser$Parser$keeper,
+		A2(
+			$elm$parser$Parser$ignorer,
+			$elm$parser$Parser$succeed($elm$core$Basics$identity),
+			$elm$parser$Parser$chompIf(
+				$elm$core$Basics$eq(
+					_Utils_chr('#')))),
+		A2(
+			$elm$parser$Parser$map,
+			A2($elm$core$Basics$composeR, $elm$core$Char$fromCode, $elm$core$String$fromChar),
+			codepoint));
+}();
+var $hecrj$html_parser$Html$Parser$characterReference = A2(
+	$elm$parser$Parser$keeper,
+	A2(
+		$elm$parser$Parser$ignorer,
+		$elm$parser$Parser$succeed($elm$core$Basics$identity),
+		$elm$parser$Parser$chompIf(
+			$elm$core$Basics$eq(
+				_Utils_chr('&')))),
+	$elm$parser$Parser$oneOf(
+		_List_fromArray(
+			[
+				A2(
+				$elm$parser$Parser$ignorer,
+				$elm$parser$Parser$backtrackable($hecrj$html_parser$Html$Parser$namedCharacterReference),
+				$hecrj$html_parser$Html$Parser$chompSemicolon),
+				A2(
+				$elm$parser$Parser$ignorer,
+				$elm$parser$Parser$backtrackable($hecrj$html_parser$Html$Parser$numericCharacterReference),
+				$hecrj$html_parser$Html$Parser$chompSemicolon),
+				$elm$parser$Parser$succeed('&')
+			])));
+var $hecrj$html_parser$Html$Parser$tagAttributeQuotedValue = function (quote) {
+	var isQuotedValueChar = function (c) {
+		return (!_Utils_eq(c, quote)) && (!_Utils_eq(
+			c,
+			_Utils_chr('&')));
+	};
+	return A2(
+		$elm$parser$Parser$keeper,
+		A2(
+			$elm$parser$Parser$ignorer,
+			$elm$parser$Parser$succeed($elm$core$Basics$identity),
+			$elm$parser$Parser$chompIf(
+				$elm$core$Basics$eq(quote))),
+		A2(
+			$elm$parser$Parser$ignorer,
+			A2(
+				$elm$parser$Parser$map,
+				$elm$core$String$join(''),
+				$hecrj$html_parser$Html$Parser$many(
+					$elm$parser$Parser$oneOf(
+						_List_fromArray(
+							[
+								$elm$parser$Parser$getChompedString(
+								$hecrj$html_parser$Html$Parser$chompOneOrMore(isQuotedValueChar)),
+								$hecrj$html_parser$Html$Parser$characterReference
+							])))),
+			$elm$parser$Parser$chompIf(
+				$elm$core$Basics$eq(quote))));
+};
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $hecrj$html_parser$Html$Parser$oneOrMore = F2(
+	function (type_, parser_) {
+		return A2(
+			$elm$parser$Parser$loop,
+			_List_Nil,
+			function (list) {
+				return $elm$parser$Parser$oneOf(
+					_List_fromArray(
+						[
+							A2(
+							$elm$parser$Parser$map,
+							function (_new) {
+								return $elm$parser$Parser$Loop(
+									A2($elm$core$List$cons, _new, list));
+							},
+							parser_),
+							$elm$core$List$isEmpty(list) ? $elm$parser$Parser$problem('expecting at least one ' + type_) : $elm$parser$Parser$succeed(
+							$elm$parser$Parser$Done(
+								$elm$core$List$reverse(list)))
+						]));
+			});
+	});
+var $hecrj$html_parser$Html$Parser$tagAttributeUnquotedValue = function () {
+	var isUnquotedValueChar = function (c) {
+		return (!$hecrj$html_parser$Html$Parser$isSpaceCharacter(c)) && ((!_Utils_eq(
+			c,
+			_Utils_chr('\"'))) && ((!_Utils_eq(
+			c,
+			_Utils_chr('\''))) && ((!_Utils_eq(
+			c,
+			_Utils_chr('='))) && ((!_Utils_eq(
+			c,
+			_Utils_chr('<'))) && ((!_Utils_eq(
+			c,
+			_Utils_chr('>'))) && ((!_Utils_eq(
+			c,
+			_Utils_chr('`'))) && (!_Utils_eq(
+			c,
+			_Utils_chr('&')))))))));
+	};
+	return A2(
+		$elm$parser$Parser$map,
+		$elm$core$String$join(''),
+		A2(
+			$hecrj$html_parser$Html$Parser$oneOrMore,
+			'attribute value',
+			$elm$parser$Parser$oneOf(
+				_List_fromArray(
+					[
+						$elm$parser$Parser$getChompedString(
+						$hecrj$html_parser$Html$Parser$chompOneOrMore(isUnquotedValueChar)),
+						$hecrj$html_parser$Html$Parser$characterReference
+					]))));
+}();
+var $hecrj$html_parser$Html$Parser$tagAttributeValue = $elm$parser$Parser$oneOf(
+	_List_fromArray(
+		[
+			A2(
+			$elm$parser$Parser$keeper,
+			A2(
+				$elm$parser$Parser$ignorer,
+				A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed($elm$core$Basics$identity),
+					$elm$parser$Parser$chompIf(
+						$elm$core$Basics$eq(
+							_Utils_chr('=')))),
+				$elm$parser$Parser$chompWhile($hecrj$html_parser$Html$Parser$isSpaceCharacter)),
+			$elm$parser$Parser$oneOf(
+				_List_fromArray(
+					[
+						$hecrj$html_parser$Html$Parser$tagAttributeUnquotedValue,
+						$hecrj$html_parser$Html$Parser$tagAttributeQuotedValue(
+						_Utils_chr('\"')),
+						$hecrj$html_parser$Html$Parser$tagAttributeQuotedValue(
+						_Utils_chr('\''))
+					]))),
+			$elm$parser$Parser$succeed('')
+		]));
+var $hecrj$html_parser$Html$Parser$tagAttribute = A2(
+	$elm$parser$Parser$keeper,
+	A2(
+		$elm$parser$Parser$keeper,
+		$elm$parser$Parser$succeed($elm$core$Tuple$pair),
+		A2(
+			$elm$parser$Parser$ignorer,
+			$hecrj$html_parser$Html$Parser$tagAttributeName,
+			$elm$parser$Parser$chompWhile($hecrj$html_parser$Html$Parser$isSpaceCharacter))),
+	A2(
+		$elm$parser$Parser$ignorer,
+		$hecrj$html_parser$Html$Parser$tagAttributeValue,
+		$elm$parser$Parser$chompWhile($hecrj$html_parser$Html$Parser$isSpaceCharacter)));
+var $hecrj$html_parser$Html$Parser$tagAttributes = $hecrj$html_parser$Html$Parser$many($hecrj$html_parser$Html$Parser$tagAttribute);
+var $hecrj$html_parser$Html$Parser$tagName = A2(
+	$elm$parser$Parser$map,
+	$elm$core$String$toLower,
+	$elm$parser$Parser$getChompedString(
+		A2(
+			$elm$parser$Parser$ignorer,
+			$elm$parser$Parser$chompIf($elm$core$Char$isAlphaNum),
+			$elm$parser$Parser$chompWhile(
+				function (c) {
+					return $elm$core$Char$isAlphaNum(c) || _Utils_eq(
+						c,
+						_Utils_chr('-'));
+				}))));
+var $hecrj$html_parser$Html$Parser$Text = function (a) {
+	return {$: 'Text', a: a};
+};
+var $hecrj$html_parser$Html$Parser$text = A2(
+	$elm$parser$Parser$map,
+	A2(
+		$elm$core$Basics$composeR,
+		$elm$core$String$join(''),
+		$hecrj$html_parser$Html$Parser$Text),
+	A2(
+		$hecrj$html_parser$Html$Parser$oneOrMore,
+		'text element',
+		$elm$parser$Parser$oneOf(
+			_List_fromArray(
+				[
+					$elm$parser$Parser$getChompedString(
+					$hecrj$html_parser$Html$Parser$chompOneOrMore(
+						function (c) {
+							return (!_Utils_eq(
+								c,
+								_Utils_chr('<'))) && (!_Utils_eq(
+								c,
+								_Utils_chr('&')));
+						})),
+					$hecrj$html_parser$Html$Parser$characterReference
+				]))));
+function $hecrj$html_parser$Html$Parser$cyclic$node() {
+	return $elm$parser$Parser$oneOf(
+		_List_fromArray(
+			[
+				$hecrj$html_parser$Html$Parser$text,
+				$hecrj$html_parser$Html$Parser$comment,
+				$hecrj$html_parser$Html$Parser$cyclic$element()
+			]));
+}
+function $hecrj$html_parser$Html$Parser$cyclic$element() {
+	return A2(
+		$elm$parser$Parser$andThen,
+		function (_v0) {
+			var name = _v0.a;
+			var attributes = _v0.b;
+			return $hecrj$html_parser$Html$Parser$isVoidElement(name) ? A2(
+				$elm$parser$Parser$ignorer,
+				A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed(
+						A3($hecrj$html_parser$Html$Parser$Element, name, attributes, _List_Nil)),
+					$elm$parser$Parser$oneOf(
+						_List_fromArray(
+							[
+								$elm$parser$Parser$chompIf(
+								$elm$core$Basics$eq(
+									_Utils_chr('/'))),
+								$elm$parser$Parser$succeed(_Utils_Tuple0)
+							]))),
+				$elm$parser$Parser$chompIf(
+					$elm$core$Basics$eq(
+						_Utils_chr('>')))) : A2(
+				$elm$parser$Parser$keeper,
+				A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed(
+						A2($hecrj$html_parser$Html$Parser$Element, name, attributes)),
+					$elm$parser$Parser$chompIf(
+						$elm$core$Basics$eq(
+							_Utils_chr('>')))),
+				A2(
+					$elm$parser$Parser$ignorer,
+					$hecrj$html_parser$Html$Parser$many(
+						$elm$parser$Parser$backtrackable(
+							$hecrj$html_parser$Html$Parser$cyclic$node())),
+					$hecrj$html_parser$Html$Parser$closingTag(name)));
+		},
+		A2(
+			$elm$parser$Parser$keeper,
+			A2(
+				$elm$parser$Parser$keeper,
+				A2(
+					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$succeed($elm$core$Tuple$pair),
+					$elm$parser$Parser$chompIf(
+						$elm$core$Basics$eq(
+							_Utils_chr('<')))),
+				A2(
+					$elm$parser$Parser$ignorer,
+					$hecrj$html_parser$Html$Parser$tagName,
+					$elm$parser$Parser$chompWhile($hecrj$html_parser$Html$Parser$isSpaceCharacter))),
+			$hecrj$html_parser$Html$Parser$tagAttributes));
+}
+try {
+	var $hecrj$html_parser$Html$Parser$node = $hecrj$html_parser$Html$Parser$cyclic$node();
+	$hecrj$html_parser$Html$Parser$cyclic$node = function () {
+		return $hecrj$html_parser$Html$Parser$node;
+	};
+	var $hecrj$html_parser$Html$Parser$element = $hecrj$html_parser$Html$Parser$cyclic$element();
+	$hecrj$html_parser$Html$Parser$cyclic$element = function () {
+		return $hecrj$html_parser$Html$Parser$element;
+	};
+} catch ($) {
+	throw 'Some top-level definitions from `Html.Parser` are causing infinite recursion:\n\n  ┌─────┐\n  │    node\n  │     ↓\n  │    element\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.1/bad-recursion to learn how to fix it!';}
+var $hecrj$html_parser$Html$Parser$run = function (str) {
+	return $elm$core$String$isEmpty(str) ? $elm$core$Result$Ok(_List_Nil) : A2(
+		$elm$parser$Parser$run,
+		A2($hecrj$html_parser$Html$Parser$oneOrMore, 'node', $hecrj$html_parser$Html$Parser$node),
+		str);
+};
+var $elm$virtual_dom$VirtualDom$node = function (tag) {
+	return _VirtualDom_node(
+		_VirtualDom_noScript(tag));
+};
+var $elm$html$Html$node = $elm$virtual_dom$VirtualDom$node;
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
+	});
+var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
+var $hecrj$html_parser$Html$Parser$Util$toAttribute = function (_v0) {
+	var name = _v0.a;
+	var value = _v0.b;
+	return A2($elm$html$Html$Attributes$attribute, name, value);
+};
+var $hecrj$html_parser$Html$Parser$Util$toVirtualDom = function (nodes) {
+	return A2($elm$core$List$map, $hecrj$html_parser$Html$Parser$Util$toVirtualDomEach, nodes);
+};
+var $hecrj$html_parser$Html$Parser$Util$toVirtualDomEach = function (node) {
+	switch (node.$) {
+		case 'Element':
+			var name = node.a;
+			var attrs = node.b;
+			var children = node.c;
+			return A3(
+				$elm$html$Html$node,
+				name,
+				A2($elm$core$List$map, $hecrj$html_parser$Html$Parser$Util$toAttribute, attrs),
+				$hecrj$html_parser$Html$Parser$Util$toVirtualDom(children));
+		case 'Text':
+			var s = node.a;
+			return $elm$html$Html$text(s);
+		default:
+			return $elm$html$Html$text('');
+	}
+};
+var $author$project$Blog$init = function (maybeFileName) {
+	if (maybeFileName.$ === 'Nothing') {
+		return _Utils_Tuple2(
+			$author$project$Blog$Index(
+				{error: $elm$core$Maybe$Nothing, posts: $elm$core$Maybe$Nothing}),
+			$author$project$Blog$fetchPosts);
+	} else {
+		var fileName = maybeFileName.a;
+		return _Utils_Tuple2(
+			$author$project$Blog$LoadingPost(fileName),
+			$elm$http$Http$get(
+				{
+					expect: $elm$http$Http$expectString(
+						A2(
+							$elm$core$Basics$composeR,
+							$elm$core$Result$mapError($author$project$Blog$GetPostError),
+							A2(
+								$elm$core$Basics$composeR,
+								$elm$core$Result$andThen(
+									A2(
+										$elm$core$Basics$composeR,
+										$hecrj$html_parser$Html$Parser$run,
+										A2(
+											$elm$core$Basics$composeR,
+											$elm$core$Result$mapError(
+												function (_v1) {
+													return $author$project$Blog$PostParsingError;
+												}),
+											$elm$core$Result$map($hecrj$html_parser$Html$Parser$Util$toVirtualDom)))),
+								$author$project$Blog$PostLoaded))),
+					url: 'blog/posts/' + (fileName + '.html')
+				}));
+	}
+};
+var $elm$core$Platform$Cmd$map = _Platform_map;
+var $elm$core$Tuple$mapFirst = F2(
+	function (func, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			func(x),
+			y);
+	});
+var $elm$core$Tuple$mapSecond = F2(
+	function (func, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			x,
+			func(y));
+	});
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Main$changeRoute = F2(
+	function (route, model) {
+		if (route.$ === 'Nothing') {
+			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+		} else {
+			if (route.a.$ === 'HomeRoute') {
+				var _v1 = route.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							page: $author$project$Main$Home(
+								{field: $author$project$Main$Software})
+						}),
+					$elm$core$Platform$Cmd$none);
+			} else {
+				var maybeFileName = route.a.a;
+				return A2(
+					$elm$core$Tuple$mapSecond,
+					$elm$core$Platform$Cmd$map($author$project$Main$BlogMsg),
+					A2(
+						$elm$core$Tuple$mapFirst,
+						function (blogModel) {
+							return _Utils_update(
+								model,
+								{
+									page: $author$project$Main$Blog(blogModel)
+								});
+						},
+						$author$project$Blog$init(maybeFileName)));
+			}
+		}
+	});
+var $elm$url$Url$Parser$State = F5(
+	function (visited, unvisited, params, frag, value) {
+		return {frag: frag, params: params, unvisited: unvisited, value: value, visited: visited};
+	});
+var $elm$url$Url$Parser$getFirstMatch = function (states) {
+	getFirstMatch:
+	while (true) {
+		if (!states.b) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var state = states.a;
+			var rest = states.b;
+			var _v1 = state.unvisited;
+			if (!_v1.b) {
+				return $elm$core$Maybe$Just(state.value);
+			} else {
+				if ((_v1.a === '') && (!_v1.b.b)) {
+					return $elm$core$Maybe$Just(state.value);
+				} else {
+					var $temp$states = rest;
+					states = $temp$states;
+					continue getFirstMatch;
+				}
+			}
+		}
+	}
+};
+var $elm$url$Url$Parser$removeFinalEmpty = function (segments) {
+	if (!segments.b) {
+		return _List_Nil;
+	} else {
+		if ((segments.a === '') && (!segments.b.b)) {
+			return _List_Nil;
+		} else {
+			var segment = segments.a;
+			var rest = segments.b;
+			return A2(
+				$elm$core$List$cons,
+				segment,
+				$elm$url$Url$Parser$removeFinalEmpty(rest));
+		}
+	}
+};
+var $elm$url$Url$Parser$preparePath = function (path) {
+	var _v0 = A2($elm$core$String$split, '/', path);
+	if (_v0.b && (_v0.a === '')) {
+		var segments = _v0.b;
+		return $elm$url$Url$Parser$removeFinalEmpty(segments);
+	} else {
+		var segments = _v0;
+		return $elm$url$Url$Parser$removeFinalEmpty(segments);
+	}
+};
+var $elm$url$Url$Parser$addToParametersHelp = F2(
+	function (value, maybeList) {
+		if (maybeList.$ === 'Nothing') {
+			return $elm$core$Maybe$Just(
+				_List_fromArray(
+					[value]));
+		} else {
+			var list = maybeList.a;
+			return $elm$core$Maybe$Just(
+				A2($elm$core$List$cons, value, list));
+		}
+	});
+var $elm$url$Url$percentDecode = _Url_percentDecode;
 var $elm$url$Url$Parser$addParam = F2(
 	function (segment, dict) {
 		var _v0 = A2($elm$core$String$split, '=', segment);
@@ -5811,7 +10418,6 @@ var $elm$url$Url$Parser$addParam = F2(
 			return dict;
 		}
 	});
-var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
 var $elm$url$Url$Parser$prepareQuery = function (maybeQuery) {
 	if (maybeQuery.$ === 'Nothing') {
 		return $elm$core$Dict$empty;
@@ -5837,7 +10443,9 @@ var $elm$url$Url$Parser$parse = F2(
 					url.fragment,
 					$elm$core$Basics$identity)));
 	});
-var $author$project$Main$BlogRoute = {$: 'BlogRoute'};
+var $author$project$Main$BlogRoute = function (a) {
+	return {$: 'BlogRoute', a: a};
+};
 var $author$project$Main$HomeRoute = {$: 'HomeRoute'};
 var $elm$url$Url$Parser$Parser = function (a) {
 	return {$: 'Parser', a: a};
@@ -5928,6 +10536,52 @@ var $elm$url$Url$Parser$s = function (str) {
 			}
 		});
 };
+var $elm$url$Url$Parser$slash = F2(
+	function (_v0, _v1) {
+		var parseBefore = _v0.a;
+		var parseAfter = _v1.a;
+		return $elm$url$Url$Parser$Parser(
+			function (state) {
+				return A2(
+					$elm$core$List$concatMap,
+					parseAfter,
+					parseBefore(state));
+			});
+	});
+var $elm$url$Url$Parser$custom = F2(
+	function (tipe, stringToSomething) {
+		return $elm$url$Url$Parser$Parser(
+			function (_v0) {
+				var visited = _v0.visited;
+				var unvisited = _v0.unvisited;
+				var params = _v0.params;
+				var frag = _v0.frag;
+				var value = _v0.value;
+				if (!unvisited.b) {
+					return _List_Nil;
+				} else {
+					var next = unvisited.a;
+					var rest = unvisited.b;
+					var _v2 = stringToSomething(next);
+					if (_v2.$ === 'Just') {
+						var nextValue = _v2.a;
+						return _List_fromArray(
+							[
+								A5(
+								$elm$url$Url$Parser$State,
+								A2($elm$core$List$cons, next, visited),
+								rest,
+								params,
+								frag,
+								value(nextValue))
+							]);
+					} else {
+						return _List_Nil;
+					}
+				}
+			});
+	});
+var $elm$url$Url$Parser$string = A2($elm$url$Url$Parser$custom, 'STRING', $elm$core$Maybe$Just);
 var $elm$url$Url$Parser$top = $elm$url$Url$Parser$Parser(
 	function (state) {
 		return _List_fromArray(
@@ -5940,17 +10594,22 @@ var $author$project$Main$routeParser = $elm$url$Url$Parser$oneOf(
 			A2(
 			$elm$url$Url$Parser$map,
 			$author$project$Main$BlogRoute,
-			$elm$url$Url$Parser$s('blog'))
+			A2(
+				$elm$url$Url$Parser$slash,
+				$elm$url$Url$Parser$s('blog'),
+				$elm$url$Url$Parser$oneOf(
+					_List_fromArray(
+						[
+							A2($elm$url$Url$Parser$map, $elm$core$Maybe$Nothing, $elm$url$Url$Parser$top),
+							A2(
+							$elm$url$Url$Parser$map,
+							$elm$core$Maybe$Just,
+							A2(
+								$elm$url$Url$Parser$slash,
+								$elm$url$Url$Parser$s('posts'),
+								$elm$url$Url$Parser$string))
+						]))))
 		]));
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
 var $author$project$Main$urlToRoute = function (url) {
 	return A2(
 		$elm$url$Url$Parser$parse,
@@ -6025,6 +10684,80 @@ var $elm$url$Url$toString = function (url) {
 					_Utils_ap(http, url.host)),
 				url.path)));
 };
+var $author$project$Blog$PostPage = function (a) {
+	return {$: 'PostPage', a: a};
+};
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Ports$highlightAll = _Platform_outgoingPort(
+	'highlightAll',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
+var $author$project$Blog$httpErrorToString = function (error) {
+	switch (error.$) {
+		case 'BadUrl':
+			var url = error.a;
+			return 'Bad URL: ' + url;
+		case 'BadStatus':
+			var status = error.a;
+			return 'Bad status: ' + $elm$core$String$fromInt(status);
+		case 'BadBody':
+			var body = error.a;
+			return 'Bad body: \n' + body;
+		case 'Timeout':
+			return 'Request timed out';
+		default:
+			return 'Network error';
+	}
+};
+var $author$project$Blog$update = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'LoadPosts':
+				var posts = msg.a;
+				return _Utils_Tuple2(
+					$author$project$Blog$Index(
+						{
+							error: $elm$core$Maybe$Nothing,
+							posts: $elm$core$Maybe$Just(posts)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'LoadPostsError':
+				var error = msg.a;
+				var message = $author$project$Blog$httpErrorToString(error);
+				return _Utils_Tuple2(
+					$author$project$Blog$Index(
+						{
+							error: $elm$core$Maybe$Just(message),
+							posts: $elm$core$Maybe$Nothing
+						}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				if (msg.a.$ === 'Ok') {
+					var post = msg.a.a;
+					return _Utils_Tuple2(
+						$author$project$Blog$PostPage(post),
+						$author$project$Ports$highlightAll(_Utils_Tuple0));
+				} else {
+					var error = msg.a.a;
+					var message = function () {
+						if (error.$ === 'GetPostError') {
+							var getError = error.a;
+							return $author$project$Blog$httpErrorToString(getError);
+						} else {
+							return 'Error parsing post';
+						}
+					}();
+					return _Utils_Tuple2(
+						$author$project$Blog$Index(
+							{
+								error: $elm$core$Maybe$Just(message),
+								posts: $elm$core$Maybe$Nothing
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+		}
+	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -6044,7 +10777,7 @@ var $author$project$Main$update = F2(
 					$author$project$Main$changeRoute,
 					$author$project$Main$urlToRoute(url),
 					model);
-			default:
+			case 'LinkClicked':
 				var request = msg.a;
 				if (request.$ === 'Internal') {
 					var url = request.a;
@@ -6060,9 +10793,31 @@ var $author$project$Main$update = F2(
 						model,
 						$elm$browser$Browser$Navigation$load(href));
 				}
+			default:
+				var blogMsg = msg.a;
+				var _v2 = model.page;
+				if (_v2.$ === 'Blog') {
+					var blogModel = _v2.a;
+					return A2(
+						$elm$core$Tuple$mapSecond,
+						$elm$core$Platform$Cmd$map($author$project$Main$BlogMsg),
+						A2(
+							$elm$core$Tuple$mapFirst,
+							function (newBlogModel) {
+								return _Utils_update(
+									model,
+									{
+										page: $author$project$Main$Blog(newBlogModel)
+									});
+							},
+							A2($author$project$Blog$update, blogMsg, blogModel)));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 		}
 	});
-var $elm$html$Html$iframe = _VirtualDom_node('iframe');
+var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
+var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -6071,26 +10826,307 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			key,
 			$elm$json$Json$Encode$string(string));
 	});
-var $elm$html$Html$Attributes$src = function (url) {
-	return A2(
-		$elm$html$Html$Attributes$stringProperty,
-		'src',
-		_VirtualDom_noJavaScriptOrHtmlUri(url));
-};
-var $author$project$Main$viewBlog = A2(
-	$elm$html$Html$iframe,
+var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $author$project$Blog$viewLoading = A2(
+	$elm$html$Html$div,
+	_List_Nil,
 	_List_fromArray(
 		[
-			$elm$html$Html$Attributes$src('./blog/python-variables-are-by-value.html')
-		]),
-	_List_Nil);
+			A2(
+			$elm$html$Html$h2,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Loading...')
+				]))
+		]));
+var $elm$html$Html$ul = _VirtualDom_node('ul');
+var $elm$html$Html$a = _VirtualDom_node('a');
+var $elm$html$Html$Attributes$href = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'href',
+		_VirtualDom_noJavaScriptUri(url));
+};
+var $elm$html$Html$li = _VirtualDom_node('li');
+var $elm$time$Time$Apr = {$: 'Apr'};
+var $elm$time$Time$Aug = {$: 'Aug'};
+var $elm$time$Time$Dec = {$: 'Dec'};
+var $elm$time$Time$Feb = {$: 'Feb'};
+var $elm$time$Time$Jan = {$: 'Jan'};
+var $elm$time$Time$Jul = {$: 'Jul'};
+var $elm$time$Time$Jun = {$: 'Jun'};
+var $elm$time$Time$Mar = {$: 'Mar'};
+var $elm$time$Time$May = {$: 'May'};
+var $elm$time$Time$Nov = {$: 'Nov'};
+var $elm$time$Time$Oct = {$: 'Oct'};
+var $elm$time$Time$Sep = {$: 'Sep'};
+var $elm$time$Time$flooredDiv = F2(
+	function (numerator, denominator) {
+		return $elm$core$Basics$floor(numerator / denominator);
+	});
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$time$Time$toAdjustedMinutesHelp = F3(
+	function (defaultOffset, posixMinutes, eras) {
+		toAdjustedMinutesHelp:
+		while (true) {
+			if (!eras.b) {
+				return posixMinutes + defaultOffset;
+			} else {
+				var era = eras.a;
+				var olderEras = eras.b;
+				if (_Utils_cmp(era.start, posixMinutes) < 0) {
+					return posixMinutes + era.offset;
+				} else {
+					var $temp$defaultOffset = defaultOffset,
+						$temp$posixMinutes = posixMinutes,
+						$temp$eras = olderEras;
+					defaultOffset = $temp$defaultOffset;
+					posixMinutes = $temp$posixMinutes;
+					eras = $temp$eras;
+					continue toAdjustedMinutesHelp;
+				}
+			}
+		}
+	});
+var $elm$time$Time$toAdjustedMinutes = F2(
+	function (_v0, time) {
+		var defaultOffset = _v0.a;
+		var eras = _v0.b;
+		return A3(
+			$elm$time$Time$toAdjustedMinutesHelp,
+			defaultOffset,
+			A2(
+				$elm$time$Time$flooredDiv,
+				$elm$time$Time$posixToMillis(time),
+				60000),
+			eras);
+	});
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$time$Time$toCivil = function (minutes) {
+	var rawDay = A2($elm$time$Time$flooredDiv, minutes, 60 * 24) + 719468;
+	var era = (((rawDay >= 0) ? rawDay : (rawDay - 146096)) / 146097) | 0;
+	var dayOfEra = rawDay - (era * 146097);
+	var yearOfEra = ((((dayOfEra - ((dayOfEra / 1460) | 0)) + ((dayOfEra / 36524) | 0)) - ((dayOfEra / 146096) | 0)) / 365) | 0;
+	var dayOfYear = dayOfEra - (((365 * yearOfEra) + ((yearOfEra / 4) | 0)) - ((yearOfEra / 100) | 0));
+	var mp = (((5 * dayOfYear) + 2) / 153) | 0;
+	var month = mp + ((mp < 10) ? 3 : (-9));
+	var year = yearOfEra + (era * 400);
+	return {
+		day: (dayOfYear - ((((153 * mp) + 2) / 5) | 0)) + 1,
+		month: month,
+		year: year + ((month <= 2) ? 1 : 0)
+	};
+};
+var $elm$time$Time$toMonth = F2(
+	function (zone, time) {
+		var _v0 = $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).month;
+		switch (_v0) {
+			case 1:
+				return $elm$time$Time$Jan;
+			case 2:
+				return $elm$time$Time$Feb;
+			case 3:
+				return $elm$time$Time$Mar;
+			case 4:
+				return $elm$time$Time$Apr;
+			case 5:
+				return $elm$time$Time$May;
+			case 6:
+				return $elm$time$Time$Jun;
+			case 7:
+				return $elm$time$Time$Jul;
+			case 8:
+				return $elm$time$Time$Aug;
+			case 9:
+				return $elm$time$Time$Sep;
+			case 10:
+				return $elm$time$Time$Oct;
+			case 11:
+				return $elm$time$Time$Nov;
+			default:
+				return $elm$time$Time$Dec;
+		}
+	});
+var $author$project$Blog$posixToMonthInt = F2(
+	function (zone, posix) {
+		var _v0 = A2($elm$time$Time$toMonth, zone, posix);
+		switch (_v0.$) {
+			case 'Jan':
+				return 1;
+			case 'Feb':
+				return 2;
+			case 'Mar':
+				return 3;
+			case 'Apr':
+				return 4;
+			case 'May':
+				return 5;
+			case 'Jun':
+				return 6;
+			case 'Jul':
+				return 7;
+			case 'Aug':
+				return 8;
+			case 'Sep':
+				return 9;
+			case 'Oct':
+				return 10;
+			case 'Nov':
+				return 11;
+			default:
+				return 12;
+		}
+	});
+var $elm$time$Time$toDay = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).day;
+	});
+var $elm$time$Time$toYear = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).year;
+	});
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$utc = A2($elm$time$Time$Zone, 0, _List_Nil);
+var $author$project$Blog$posixToYearMonthDay = function (posix) {
+	return A2(
+		$elm$core$String$join,
+		'-',
+		A2(
+			$elm$core$List$map,
+			$elm$core$String$fromInt,
+			A2(
+				$elm$core$List$map,
+				function (f) {
+					return A2(f, $elm$time$Time$utc, posix);
+				},
+				_List_fromArray(
+					[$elm$time$Time$toYear, $author$project$Blog$posixToMonthInt, $elm$time$Time$toDay]))));
+};
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $author$project$Blog$viewPost = function (post) {
+	return A2(
+		$elm$html$Html$li,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$a,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$href('#/blog/posts/' + post.fileName)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(post.title)
+					])),
+				$elm$html$Html$text(' - '),
+				A2(
+				$elm$html$Html$span,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						$author$project$Blog$posixToYearMonthDay(post.date))
+					]))
+			]));
+};
+var $author$project$Blog$viewPosts = function (posts) {
+	return A2(
+		$elm$html$Html$ul,
+		_List_Nil,
+		A2($elm$core$List$map, $author$project$Blog$viewPost, posts));
+};
+var $author$project$Blog$viewIndex = F2(
+	function (maybePosts, maybeError) {
+		return A2(
+			$elm$html$Html$div,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$h1,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Articles')
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					function () {
+						if (maybeError.$ === 'Just') {
+							var error = maybeError.a;
+							return _List_fromArray(
+								[
+									$elm$html$Html$text(error)
+								]);
+						} else {
+							return _List_Nil;
+						}
+					}()),
+					function () {
+					if (maybePosts.$ === 'Just') {
+						var posts = maybePosts.a;
+						return $author$project$Blog$viewPosts(posts);
+					} else {
+						return $author$project$Blog$viewLoading;
+					}
+				}()
+				]));
+	});
+var $author$project$Blog$viewLoadingPost = function (fileName) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h2,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Loading ' + (fileName + '...'))
+					]))
+			]));
+};
+var $author$project$Blog$view = function (model) {
+	switch (model.$) {
+		case 'Index':
+			var posts = model.a.posts;
+			var error = model.a.error;
+			return A2($author$project$Blog$viewIndex, posts, error);
+		case 'LoadingPost':
+			var fileName = model.a;
+			return $author$project$Blog$viewLoadingPost(fileName);
+		default:
+			var post = model.a;
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('blog')
+					]),
+				post);
+	}
+};
 var $author$project$Main$MachineLearning = {$: 'MachineLearning'};
 var $author$project$Main$SetField = function (a) {
 	return {$: 'SetField', a: a};
 };
 var $author$project$Main$Web = {$: 'Web'};
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Main$fieldToString = function (field) {
 	switch (field.$) {
 		case 'Software':
@@ -6101,7 +11137,6 @@ var $author$project$Main$fieldToString = function (field) {
 			return 'machine learning';
 	}
 };
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -6119,9 +11154,6 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
 };
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$viewHeadings = function (field) {
 	return A2(
 		$elm$html$Html$div,
@@ -6239,15 +11271,6 @@ var $author$project$Main$viewHeadings = function (field) {
 					]))
 			]));
 };
-var $elm$html$Html$a = _VirtualDom_node('a');
-var $elm$html$Html$Attributes$href = function (url) {
-	return A2(
-		$elm$html$Html$Attributes$stringProperty,
-		'href',
-		_VirtualDom_noJavaScriptUri(url));
-};
-var $elm$html$Html$li = _VirtualDom_node('li');
-var $elm$html$Html$ul = _VirtualDom_node('ul');
 var $author$project$Main$viewProjects = A2(
 	$elm$html$Html$div,
 	_List_fromArray(
@@ -6314,8 +11337,14 @@ var $author$project$Main$view = function (model) {
 						$author$project$Main$viewProjects
 					]);
 			} else {
+				var blogModel = _v0.a;
 				return _List_fromArray(
-					[$author$project$Main$viewBlog]);
+					[
+						A2(
+						$elm$html$Html$map,
+						$author$project$Main$BlogMsg,
+						$author$project$Blog$view(blogModel))
+					]);
 			}
 		}(),
 		title: 'Yonatan Reicher | Math & Computer Science'

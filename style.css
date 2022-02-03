@@ -1,18 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@200;400;700&display=swap');
 
 :root {
-    font-size: 16px;
-    font-family: 'Raleway', sans-serif;
     --text-primary: #b6b6b6;
     --text-secondary: #9c9cac;
     --bg-primary: #1a1a1a;
     --bg-secondary: #2d2d2d;
+
+    font-size: 16px;
+    font-family: 'Raleway', sans-serif;
+    color: var(--text-primary);
+    background: var(--bg-primary);
 }
 
 body {
     margin: 0;
     padding: 0;
-    background: var(--bg-primary);
 }
 
 .headings {
@@ -122,7 +124,16 @@ body {
     height: 100vh;
 }
 
-body.blog {
-    background-color: var(--bg-secondary);
+.blog {
+    padding: 30;
+}
+
+.blog h1 {
+    text-align: center;
+}
+
+.blog pre code {
+    font-size: 1.2em;
+    color: var(--text-secondary);
 }
 
