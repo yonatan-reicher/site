@@ -6,7 +6,7 @@
     --bg-primary: #1a1a1a;
     --bg-secondary: #2d2d2d;
 
-    font-size: 16px;
+    font-size: 20px;
     font-family: 'Raleway', sans-serif;
     color: var(--text-primary);
     background: var(--bg-primary);
@@ -125,7 +125,10 @@ body {
 }
 
 .blog {
+    max-width: 800px;
+    margin: auto;
     padding: 30;
+    line-height: 1.6;
 }
 
 .blog h1 {
@@ -133,7 +136,15 @@ body {
 }
 
 .blog pre code {
-    font-size: 1.2em;
+    font-size: 1.1em;
+    line-height: 1.25;
     color: var(--text-secondary);
+}
+
+.blog img {
+    display: block;
+    margin: auto;
+    max-width: 100%;
+    height: auto;
 }
 

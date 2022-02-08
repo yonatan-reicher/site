@@ -5486,19 +5486,19 @@ var $author$project$Main$Blog = function (a) {
 var $author$project$Main$BlogMsg = function (a) {
 	return {$: 'BlogMsg', a: a};
 };
-var $author$project$Blog$GetPostError = function (a) {
-	return {$: 'GetPostError', a: a};
-};
 var $author$project$Blog$Index = function (a) {
 	return {$: 'Index', a: a};
 };
 var $author$project$Blog$LoadingPost = function (a) {
 	return {$: 'LoadingPost', a: a};
 };
+var $author$project$Blog$PostGetError = function (a) {
+	return {$: 'PostGetError', a: a};
+};
 var $author$project$Blog$PostLoaded = function (a) {
 	return {$: 'PostLoaded', a: a};
 };
-var $author$project$Blog$PostParsingError = {$: 'PostParsingError'};
+var $author$project$Blog$PostParseError = {$: 'PostParseError'};
 var $elm$core$Result$andThen = F2(
 	function (callback, result) {
 		if (result.$ === 'Ok') {
@@ -7121,17 +7121,7 @@ var $author$project$Blog$fetchPosts = $elm$http$Http$get(
 			$author$project$Blog$postsDecoder),
 		url: './blog/posts.json'
 	});
-var $elm$core$Result$map = F2(
-	function (func, ra) {
-		if (ra.$ === 'Ok') {
-			var a = ra.a;
-			return $elm$core$Result$Ok(
-				func(a));
-		} else {
-			var e = ra.a;
-			return $elm$core$Result$Err(e);
-		}
-	});
+var $elm$core$Debug$log = _Debug_log;
 var $hecrj$html_parser$Html$Parser$Element = F3(
 	function (a, b, c) {
 		return {$: 'Element', a: a, b: b, c: c};
@@ -9664,6 +9654,17 @@ var $rtfeldman$elm_hex$Hex$fromStringHelp = F3(
 			}
 		}
 	});
+var $elm$core$Result$map = F2(
+	function (func, ra) {
+		if (ra.$ === 'Ok') {
+			var a = ra.a;
+			return $elm$core$Result$Ok(
+				func(a));
+		} else {
+			var e = ra.a;
+			return $elm$core$Result$Err(e);
+		}
+	});
 var $elm$core$List$tail = function (list) {
 	if (list.b) {
 		var x = list.a;
@@ -10253,20 +10254,24 @@ var $author$project$Blog$init = function (maybeFileName) {
 					expect: $elm$http$Http$expectString(
 						A2(
 							$elm$core$Basics$composeR,
-							$elm$core$Result$mapError($author$project$Blog$GetPostError),
+							$elm$core$Result$mapError($author$project$Blog$PostGetError),
 							A2(
 								$elm$core$Basics$composeR,
 								$elm$core$Result$andThen(
-									A2(
-										$elm$core$Basics$composeR,
-										$hecrj$html_parser$Html$Parser$run,
-										A2(
-											$elm$core$Basics$composeR,
-											$elm$core$Result$mapError(
-												function (_v1) {
-													return $author$project$Blog$PostParsingError;
-												}),
-											$elm$core$Result$map($hecrj$html_parser$Html$Parser$Util$toVirtualDom)))),
+									function (htmlText) {
+										var _v1 = $hecrj$html_parser$Html$Parser$run(htmlText);
+										if (_v1.$ === 'Err') {
+											var deadEnds = _v1.a;
+											return function (_v2) {
+												return $elm$core$Result$Err($author$project$Blog$PostParseError);
+											}(
+												A2($elm$core$Debug$log, 'Dead ends', deadEnds));
+										} else {
+											var node = _v1.a;
+											return $elm$core$Result$Ok(
+												$hecrj$html_parser$Html$Parser$Util$toVirtualDom(node));
+										}
+									}),
 								$author$project$Blog$PostLoaded))),
 					url: 'blog/posts/' + (fileName + '.html')
 				}));
@@ -10734,18 +10739,19 @@ var $author$project$Blog$update = F2(
 					$elm$core$Platform$Cmd$none);
 			default:
 				if (msg.a.$ === 'Ok') {
-					var post = msg.a.a;
+					var content = msg.a.a;
 					return _Utils_Tuple2(
-						$author$project$Blog$PostPage(post),
+						$author$project$Blog$PostPage(
+							{content: content}),
 						$author$project$Ports$highlightAll(_Utils_Tuple0));
 				} else {
 					var error = msg.a.a;
 					var message = function () {
-						if (error.$ === 'GetPostError') {
-							var getError = error.a;
-							return $author$project$Blog$httpErrorToString(getError);
+						if (error.$ === 'PostGetError') {
+							var httpError = error.a;
+							return $author$project$Blog$httpErrorToString(httpError);
 						} else {
-							return 'Error parsing post';
+							return 'File is not a post';
 						}
 					}();
 					return _Utils_Tuple2(
@@ -10828,6 +10834,7 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $author$project$Blog$viewLoading = A2(
@@ -11112,14 +11119,15 @@ var $author$project$Blog$view = function (model) {
 			var fileName = model.a;
 			return $author$project$Blog$viewLoadingPost(fileName);
 		default:
-			var post = model.a;
+			var content = model.a.content;
 			return A2(
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('blog')
+						$elm$html$Html$Attributes$class('blog'),
+						$elm$html$Html$Attributes$id('blog')
 					]),
-				post);
+				content);
 	}
 };
 var $author$project$Main$MachineLearning = {$: 'MachineLearning'};

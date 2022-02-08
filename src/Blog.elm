@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html.Parser
-import Html.Parser.Util exposing (toVirtualDom)
+import Html.Parser.Util
 import Time exposing (Posix)
 import Http
 import Json.Decode as D
@@ -18,7 +18,9 @@ type Model
         , error: Maybe String
         }
     | LoadingPost String
-    | PostPage (List (Html Msg))
+    | PostPage
+        { content : List (Html Msg)
+        }
 
 
 type alias Post =
@@ -35,8 +37,8 @@ type Msg
 
 
 type PostLoadedError
-    = GetPostError Http.Error
-    | PostParsingError
+    = PostGetError Http.Error
+    | PostParseError
 
 
 httpErrorToString : Http.Error -> String
@@ -74,12 +76,15 @@ init maybeFileName =
             , Http.get
                 { url = "blog/posts/" ++ fileName ++ ".html"
                 , expect = Http.expectString
-                    ( Result.mapError GetPostError
-                      >> Result.andThen
-                        ( Html.Parser.run
-                          >> Result.mapError (\_ -> PostParsingError)
-                          >> Result.map toVirtualDom
-                          )
+                    ( Result.mapError PostGetError
+                      >> Result.andThen (\htmlText ->
+                          case Html.Parser.run htmlText of
+                              Err deadEnds ->
+                                  Debug.log "Dead ends" deadEnds
+                                  |> \_ -> Err PostParseError
+
+                              Ok node ->
+                                  Ok (Html.Parser.Util.toVirtualDom node))
                       >> PostLoaded
                     )
                 }
@@ -134,18 +139,18 @@ update msg model =
                 , Cmd.none
                 )
 
-        PostLoaded (Ok post) ->
-            ( PostPage post
+        PostLoaded (Ok content) ->
+            ( PostPage
+                { content = content
+                }
             , highlightAll()
             )
 
         PostLoaded (Err error) ->
             let message =
-                    case error of
-                        GetPostError getError ->
-                            httpErrorToString getError
-                        PostParsingError ->
-                            "Error parsing post"
+                   case error of
+                       PostGetError httpError -> httpErrorToString httpError
+                       PostParseError -> "File is not a post"
             in
                 ( Index
                     { posts = Nothing
@@ -153,7 +158,6 @@ update msg model =
                     }
                 , Cmd.none
                 )
-
 
 view : Model -> Html Msg
 view model =
@@ -164,8 +168,12 @@ view model =
         LoadingPost fileName ->
             viewLoadingPost fileName
 
-        PostPage post ->
-            div [ class "blog" ] post
+        PostPage { content } ->
+            div
+                [ class "blog"
+                , id "blog"
+                ]
+                content
 
 
 viewIndex : Maybe (List Post) -> Maybe String -> Html Msg
