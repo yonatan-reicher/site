@@ -138,10 +138,20 @@ body {
     text-align: center;
 }
 
-.blog pre code {
+.blog code {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
+}
+
+.blog pre>code {
     font-size: 1.1em;
     line-height: 1.25;
     color: var(--text-secondary);
+}
+
+.blog :not(pre)>code {
+    margin-left: 5;
+    margin-right: 5;
 }
 
 .blog img {
