@@ -1,4 +1,7 @@
+/* Raleway font */
 @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@200;400;700&display=swap');
+/* JetBrains Mono font */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
 :root {
     --text-primary: #b6b6b6;
