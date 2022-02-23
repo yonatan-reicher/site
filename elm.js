@@ -5489,16 +5489,21 @@ var $author$project$Main$BlogMsg = function (a) {
 var $author$project$Blog$Index = function (a) {
 	return {$: 'Index', a: a};
 };
+var $author$project$Blog$IndexPostsLoaded = function (a) {
+	return {$: 'IndexPostsLoaded', a: a};
+};
 var $author$project$Blog$LoadingPost = function (a) {
 	return {$: 'LoadingPost', a: a};
 };
-var $author$project$Blog$PostGetError = function (a) {
-	return {$: 'PostGetError', a: a};
+var $author$project$Blog$PostDoesNotExist = function (a) {
+	return {$: 'PostDoesNotExist', a: a};
 };
 var $author$project$Blog$PostLoaded = function (a) {
 	return {$: 'PostLoaded', a: a};
 };
-var $author$project$Blog$PostParseError = {$: 'PostParseError'};
+var $author$project$Blog$PostsGetError = function (a) {
+	return {$: 'PostsGetError', a: a};
+};
 var $elm$core$Result$andThen = F2(
 	function (callback, result) {
 		if (result.$ === 'Ok') {
@@ -5514,6 +5519,7 @@ var $elm$core$Basics$composeR = F3(
 		return g(
 			f(x));
 	});
+var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $elm$http$Http$BadStatus_ = F2(
 	function (a, b) {
 		return {$: 'BadStatus_', a: a, b: b};
@@ -6064,17 +6070,6 @@ var $elm$http$Http$expectStringResponse = F2(
 			$elm$core$Basics$identity,
 			A2($elm$core$Basics$composeR, toResult, toMsg));
 	});
-var $elm$http$Http$BadBody = function (a) {
-	return {$: 'BadBody', a: a};
-};
-var $elm$http$Http$BadStatus = function (a) {
-	return {$: 'BadStatus', a: a};
-};
-var $elm$http$Http$BadUrl = function (a) {
-	return {$: 'BadUrl', a: a};
-};
-var $elm$http$Http$NetworkError = {$: 'NetworkError'};
-var $elm$http$Http$Timeout = {$: 'Timeout'};
 var $elm$core$Result$mapError = F2(
 	function (f, result) {
 		if (result.$ === 'Ok') {
@@ -6086,6 +6081,17 @@ var $elm$core$Result$mapError = F2(
 				f(e));
 		}
 	});
+var $elm$http$Http$BadBody = function (a) {
+	return {$: 'BadBody', a: a};
+};
+var $elm$http$Http$BadStatus = function (a) {
+	return {$: 'BadStatus', a: a};
+};
+var $elm$http$Http$BadUrl = function (a) {
+	return {$: 'BadUrl', a: a};
+};
+var $elm$http$Http$NetworkError = {$: 'NetworkError'};
+var $elm$http$Http$Timeout = {$: 'Timeout'};
 var $elm$http$Http$resolve = F2(
 	function (toResult, response) {
 		switch (response.$) {
@@ -6109,19 +6115,6 @@ var $elm$http$Http$resolve = F2(
 					toResult(body));
 		}
 	});
-var $elm$http$Http$expectString = function (toMsg) {
-	return A2(
-		$elm$http$Http$expectStringResponse,
-		toMsg,
-		$elm$http$Http$resolve($elm$core$Result$Ok));
-};
-var $author$project$Blog$LoadPosts = function (a) {
-	return {$: 'LoadPosts', a: a};
-};
-var $author$project$Blog$LoadPostsError = function (a) {
-	return {$: 'LoadPostsError', a: a};
-};
-var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $elm$http$Http$expectJson = F2(
 	function (toMsg, decoder) {
 		return A2(
@@ -7105,23 +7098,546 @@ var $author$project$Blog$postsDecoder = $elm$json$Json$Decode$list(
 		A2($elm$json$Json$Decode$field, 'title', $elm$json$Json$Decode$string),
 		A2($elm$json$Json$Decode$field, 'date', $elm_community$json_extra$Json$Decode$Extra$datetime),
 		A2($elm$json$Json$Decode$field, 'fileName', $elm$json$Json$Decode$string)));
-var $author$project$Blog$fetchPosts = $elm$http$Http$get(
-	{
-		expect: A2(
-			$elm$http$Http$expectJson,
-			function (result) {
-				if (result.$ === 'Ok') {
-					var posts = result.a;
-					return $author$project$Blog$LoadPosts(posts);
-				} else {
-					var error = result.a;
-					return $author$project$Blog$LoadPostsError(error);
-				}
-			},
-			$author$project$Blog$postsDecoder),
-		url: './blog/posts.json'
+var $author$project$Blog$fetchPosts = function (msg) {
+	return $elm$http$Http$get(
+		{
+			expect: A2($elm$http$Http$expectJson, msg, $author$project$Blog$postsDecoder),
+			url: './blog/posts.json'
+		});
+};
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
 	});
+var $elm$core$Result$fromMaybe = F2(
+	function (err, maybe) {
+		if (maybe.$ === 'Just') {
+			var v = maybe.a;
+			return $elm$core$Result$Ok(v);
+		} else {
+			return $elm$core$Result$Err(err);
+		}
+	});
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Blog$init = function (maybeFileName) {
+	if (maybeFileName.$ === 'Nothing') {
+		return _Utils_Tuple2(
+			$author$project$Blog$Index(
+				{error: $elm$core$Maybe$Nothing, posts: $elm$core$Maybe$Nothing}),
+			$author$project$Blog$fetchPosts($author$project$Blog$IndexPostsLoaded));
+	} else {
+		var fileName = maybeFileName.a;
+		return _Utils_Tuple2(
+			$author$project$Blog$LoadingPost(fileName),
+			$author$project$Blog$fetchPosts(
+				A2(
+					$elm$core$Basics$composeR,
+					$elm$core$Result$mapError($author$project$Blog$PostsGetError),
+					A2(
+						$elm$core$Basics$composeR,
+						$elm$core$Result$andThen(
+							function (posts) {
+								return A2(
+									$elm$core$Result$fromMaybe,
+									$author$project$Blog$PostDoesNotExist(fileName),
+									$elm$core$List$head(
+										A2(
+											$elm$core$List$filter,
+											function (post) {
+												return _Utils_eq(post.fileName, fileName);
+											},
+											posts)));
+							}),
+						$author$project$Blog$PostLoaded))));
+	}
+};
+var $elm$core$Platform$Cmd$map = _Platform_map;
+var $elm$core$Tuple$mapFirst = F2(
+	function (func, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			func(x),
+			y);
+	});
+var $elm$core$Tuple$mapSecond = F2(
+	function (func, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			x,
+			func(y));
+	});
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Main$changeRoute = F2(
+	function (route, model) {
+		if (route.$ === 'Nothing') {
+			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+		} else {
+			if (route.a.$ === 'HomeRoute') {
+				var _v1 = route.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							page: $author$project$Main$Home(
+								{field: $author$project$Main$Software})
+						}),
+					$elm$core$Platform$Cmd$none);
+			} else {
+				var maybeFileName = route.a.a;
+				return A2(
+					$elm$core$Tuple$mapSecond,
+					$elm$core$Platform$Cmd$map($author$project$Main$BlogMsg),
+					A2(
+						$elm$core$Tuple$mapFirst,
+						function (blogModel) {
+							return _Utils_update(
+								model,
+								{
+									page: $author$project$Main$Blog(blogModel)
+								});
+						},
+						$author$project$Blog$init(maybeFileName)));
+			}
+		}
+	});
+var $elm$url$Url$Parser$State = F5(
+	function (visited, unvisited, params, frag, value) {
+		return {frag: frag, params: params, unvisited: unvisited, value: value, visited: visited};
+	});
+var $elm$url$Url$Parser$getFirstMatch = function (states) {
+	getFirstMatch:
+	while (true) {
+		if (!states.b) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var state = states.a;
+			var rest = states.b;
+			var _v1 = state.unvisited;
+			if (!_v1.b) {
+				return $elm$core$Maybe$Just(state.value);
+			} else {
+				if ((_v1.a === '') && (!_v1.b.b)) {
+					return $elm$core$Maybe$Just(state.value);
+				} else {
+					var $temp$states = rest;
+					states = $temp$states;
+					continue getFirstMatch;
+				}
+			}
+		}
+	}
+};
+var $elm$url$Url$Parser$removeFinalEmpty = function (segments) {
+	if (!segments.b) {
+		return _List_Nil;
+	} else {
+		if ((segments.a === '') && (!segments.b.b)) {
+			return _List_Nil;
+		} else {
+			var segment = segments.a;
+			var rest = segments.b;
+			return A2(
+				$elm$core$List$cons,
+				segment,
+				$elm$url$Url$Parser$removeFinalEmpty(rest));
+		}
+	}
+};
+var $elm$url$Url$Parser$preparePath = function (path) {
+	var _v0 = A2($elm$core$String$split, '/', path);
+	if (_v0.b && (_v0.a === '')) {
+		var segments = _v0.b;
+		return $elm$url$Url$Parser$removeFinalEmpty(segments);
+	} else {
+		var segments = _v0;
+		return $elm$url$Url$Parser$removeFinalEmpty(segments);
+	}
+};
+var $elm$url$Url$Parser$addToParametersHelp = F2(
+	function (value, maybeList) {
+		if (maybeList.$ === 'Nothing') {
+			return $elm$core$Maybe$Just(
+				_List_fromArray(
+					[value]));
+		} else {
+			var list = maybeList.a;
+			return $elm$core$Maybe$Just(
+				A2($elm$core$List$cons, value, list));
+		}
+	});
+var $elm$url$Url$percentDecode = _Url_percentDecode;
+var $elm$url$Url$Parser$addParam = F2(
+	function (segment, dict) {
+		var _v0 = A2($elm$core$String$split, '=', segment);
+		if ((_v0.b && _v0.b.b) && (!_v0.b.b.b)) {
+			var rawKey = _v0.a;
+			var _v1 = _v0.b;
+			var rawValue = _v1.a;
+			var _v2 = $elm$url$Url$percentDecode(rawKey);
+			if (_v2.$ === 'Nothing') {
+				return dict;
+			} else {
+				var key = _v2.a;
+				var _v3 = $elm$url$Url$percentDecode(rawValue);
+				if (_v3.$ === 'Nothing') {
+					return dict;
+				} else {
+					var value = _v3.a;
+					return A3(
+						$elm$core$Dict$update,
+						key,
+						$elm$url$Url$Parser$addToParametersHelp(value),
+						dict);
+				}
+			}
+		} else {
+			return dict;
+		}
+	});
+var $elm$url$Url$Parser$prepareQuery = function (maybeQuery) {
+	if (maybeQuery.$ === 'Nothing') {
+		return $elm$core$Dict$empty;
+	} else {
+		var qry = maybeQuery.a;
+		return A3(
+			$elm$core$List$foldr,
+			$elm$url$Url$Parser$addParam,
+			$elm$core$Dict$empty,
+			A2($elm$core$String$split, '&', qry));
+	}
+};
+var $elm$url$Url$Parser$parse = F2(
+	function (_v0, url) {
+		var parser = _v0.a;
+		return $elm$url$Url$Parser$getFirstMatch(
+			parser(
+				A5(
+					$elm$url$Url$Parser$State,
+					_List_Nil,
+					$elm$url$Url$Parser$preparePath(url.path),
+					$elm$url$Url$Parser$prepareQuery(url.query),
+					url.fragment,
+					$elm$core$Basics$identity)));
+	});
+var $author$project$Main$BlogRoute = function (a) {
+	return {$: 'BlogRoute', a: a};
+};
+var $author$project$Main$HomeRoute = {$: 'HomeRoute'};
+var $elm$url$Url$Parser$Parser = function (a) {
+	return {$: 'Parser', a: a};
+};
+var $elm$url$Url$Parser$mapState = F2(
+	function (func, _v0) {
+		var visited = _v0.visited;
+		var unvisited = _v0.unvisited;
+		var params = _v0.params;
+		var frag = _v0.frag;
+		var value = _v0.value;
+		return A5(
+			$elm$url$Url$Parser$State,
+			visited,
+			unvisited,
+			params,
+			frag,
+			func(value));
+	});
+var $elm$url$Url$Parser$map = F2(
+	function (subValue, _v0) {
+		var parseArg = _v0.a;
+		return $elm$url$Url$Parser$Parser(
+			function (_v1) {
+				var visited = _v1.visited;
+				var unvisited = _v1.unvisited;
+				var params = _v1.params;
+				var frag = _v1.frag;
+				var value = _v1.value;
+				return A2(
+					$elm$core$List$map,
+					$elm$url$Url$Parser$mapState(value),
+					parseArg(
+						A5($elm$url$Url$Parser$State, visited, unvisited, params, frag, subValue)));
+			});
+	});
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
+	});
+var $elm$core$List$concat = function (lists) {
+	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
+};
+var $elm$core$List$concatMap = F2(
+	function (f, list) {
+		return $elm$core$List$concat(
+			A2($elm$core$List$map, f, list));
+	});
+var $elm$url$Url$Parser$oneOf = function (parsers) {
+	return $elm$url$Url$Parser$Parser(
+		function (state) {
+			return A2(
+				$elm$core$List$concatMap,
+				function (_v0) {
+					var parser = _v0.a;
+					return parser(state);
+				},
+				parsers);
+		});
+};
+var $elm$url$Url$Parser$s = function (str) {
+	return $elm$url$Url$Parser$Parser(
+		function (_v0) {
+			var visited = _v0.visited;
+			var unvisited = _v0.unvisited;
+			var params = _v0.params;
+			var frag = _v0.frag;
+			var value = _v0.value;
+			if (!unvisited.b) {
+				return _List_Nil;
+			} else {
+				var next = unvisited.a;
+				var rest = unvisited.b;
+				return _Utils_eq(next, str) ? _List_fromArray(
+					[
+						A5(
+						$elm$url$Url$Parser$State,
+						A2($elm$core$List$cons, next, visited),
+						rest,
+						params,
+						frag,
+						value)
+					]) : _List_Nil;
+			}
+		});
+};
+var $elm$url$Url$Parser$slash = F2(
+	function (_v0, _v1) {
+		var parseBefore = _v0.a;
+		var parseAfter = _v1.a;
+		return $elm$url$Url$Parser$Parser(
+			function (state) {
+				return A2(
+					$elm$core$List$concatMap,
+					parseAfter,
+					parseBefore(state));
+			});
+	});
+var $elm$url$Url$Parser$custom = F2(
+	function (tipe, stringToSomething) {
+		return $elm$url$Url$Parser$Parser(
+			function (_v0) {
+				var visited = _v0.visited;
+				var unvisited = _v0.unvisited;
+				var params = _v0.params;
+				var frag = _v0.frag;
+				var value = _v0.value;
+				if (!unvisited.b) {
+					return _List_Nil;
+				} else {
+					var next = unvisited.a;
+					var rest = unvisited.b;
+					var _v2 = stringToSomething(next);
+					if (_v2.$ === 'Just') {
+						var nextValue = _v2.a;
+						return _List_fromArray(
+							[
+								A5(
+								$elm$url$Url$Parser$State,
+								A2($elm$core$List$cons, next, visited),
+								rest,
+								params,
+								frag,
+								value(nextValue))
+							]);
+					} else {
+						return _List_Nil;
+					}
+				}
+			});
+	});
+var $elm$url$Url$Parser$string = A2($elm$url$Url$Parser$custom, 'STRING', $elm$core$Maybe$Just);
+var $elm$url$Url$Parser$top = $elm$url$Url$Parser$Parser(
+	function (state) {
+		return _List_fromArray(
+			[state]);
+	});
+var $author$project$Main$routeParser = $elm$url$Url$Parser$oneOf(
+	_List_fromArray(
+		[
+			A2($elm$url$Url$Parser$map, $author$project$Main$HomeRoute, $elm$url$Url$Parser$top),
+			A2(
+			$elm$url$Url$Parser$map,
+			$author$project$Main$BlogRoute,
+			A2(
+				$elm$url$Url$Parser$slash,
+				$elm$url$Url$Parser$s('blog'),
+				$elm$url$Url$Parser$oneOf(
+					_List_fromArray(
+						[
+							A2($elm$url$Url$Parser$map, $elm$core$Maybe$Nothing, $elm$url$Url$Parser$top),
+							A2(
+							$elm$url$Url$Parser$map,
+							$elm$core$Maybe$Just,
+							A2(
+								$elm$url$Url$Parser$slash,
+								$elm$url$Url$Parser$s('posts'),
+								$elm$url$Url$Parser$string))
+						]))))
+		]));
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Main$urlToRoute = function (url) {
+	return A2(
+		$elm$url$Url$Parser$parse,
+		$author$project$Main$routeParser,
+		_Utils_update(
+			url,
+			{
+				fragment: $elm$core$Maybe$Nothing,
+				path: A2($elm$core$Maybe$withDefault, '', url.fragment)
+			}));
+};
+var $author$project$Main$init = F3(
+	function (_v0, url, key) {
+		return A2(
+			$author$project$Main$changeRoute,
+			$author$project$Main$urlToRoute(url),
+			A3(
+				$author$project$Main$Model,
+				key,
+				url,
+				$author$project$Main$Home(
+					{field: $author$project$Main$Software})));
+	});
+var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+var $author$project$Main$subscriptions = function (model) {
+	return $elm$core$Platform$Sub$none;
+};
+var $elm$browser$Browser$Navigation$load = _Browser_load;
+var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
+var $elm$url$Url$addPort = F2(
+	function (maybePort, starter) {
+		if (maybePort.$ === 'Nothing') {
+			return starter;
+		} else {
+			var port_ = maybePort.a;
+			return starter + (':' + $elm$core$String$fromInt(port_));
+		}
+	});
+var $elm$url$Url$addPrefixed = F3(
+	function (prefix, maybeSegment, starter) {
+		if (maybeSegment.$ === 'Nothing') {
+			return starter;
+		} else {
+			var segment = maybeSegment.a;
+			return _Utils_ap(
+				starter,
+				_Utils_ap(prefix, segment));
+		}
+	});
+var $elm$url$Url$toString = function (url) {
+	var http = function () {
+		var _v0 = url.protocol;
+		if (_v0.$ === 'Http') {
+			return 'http://';
+		} else {
+			return 'https://';
+		}
+	}();
+	return A3(
+		$elm$url$Url$addPrefixed,
+		'#',
+		url.fragment,
+		A3(
+			$elm$url$Url$addPrefixed,
+			'?',
+			url.query,
+			_Utils_ap(
+				A2(
+					$elm$url$Url$addPort,
+					url.port_,
+					_Utils_ap(http, url.host)),
+				url.path)));
+};
+var $author$project$Blog$PostBodyGetError = function (a) {
+	return {$: 'PostBodyGetError', a: a};
+};
+var $author$project$Blog$PostBodyLoaded = function (a) {
+	return {$: 'PostBodyLoaded', a: a};
+};
+var $author$project$Blog$PostBodyParseError = {$: 'PostBodyParseError'};
+var $author$project$Blog$PostPage = function (a) {
+	return {$: 'PostPage', a: a};
+};
+var $elm$http$Http$expectString = function (toMsg) {
+	return A2(
+		$elm$http$Http$expectStringResponse,
+		toMsg,
+		$elm$http$Http$resolve($elm$core$Result$Ok));
+};
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Ports$highlightAll = _Platform_outgoingPort(
+	'highlightAll',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
+var $author$project$Blog$httpErrorToString = function (error) {
+	switch (error.$) {
+		case 'BadUrl':
+			var url = error.a;
+			return 'Bad URL: ' + url;
+		case 'BadStatus':
+			var status = error.a;
+			return 'Bad status: ' + $elm$core$String$fromInt(status);
+		case 'BadBody':
+			var body = error.a;
+			return 'Bad body: \n' + body;
+		case 'Timeout':
+			return 'Request timed out';
+		default:
+			return 'Network error';
+	}
+};
 var $elm$core$Debug$log = _Debug_log;
+var $elm$core$Result$map = F2(
+	function (func, ra) {
+		if (ra.$ === 'Ok') {
+			var a = ra.a;
+			return $elm$core$Result$Ok(
+				func(a));
+		} else {
+			var e = ra.a;
+			return $elm$core$Result$Err(e);
+		}
+	});
 var $hecrj$html_parser$Html$Parser$Element = F3(
 	function (a, b, c) {
 		return {$: 'Element', a: a, b: b, c: c};
@@ -9483,15 +9999,6 @@ var $hecrj$html_parser$Html$Parser$NamedCharacterReferences$dict = $elm$core$Dic
 			_Utils_Tuple2('zwj', '\u200D'),
 			_Utils_Tuple2('zwnj', '\u200C')
 		]));
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
 var $hecrj$html_parser$Html$Parser$namedCharacterReference = A2(
 	$elm$parser$Parser$map,
 	function (reference) {
@@ -9652,17 +10159,6 @@ var $rtfeldman$elm_hex$Hex$fromStringHelp = F3(
 							$elm$core$String$fromChar(nonHex) + ' is not a valid hexadecimal character.');
 				}
 			}
-		}
-	});
-var $elm$core$Result$map = F2(
-	function (func, ra) {
-		if (ra.$ === 'Ok') {
-			var a = ra.a;
-			return $elm$core$Result$Ok(
-				func(a));
-		} else {
-			var e = ra.a;
-			return $elm$core$Result$Err(e);
 		}
 	});
 var $elm$core$List$tail = function (list) {
@@ -10239,515 +10735,103 @@ var $hecrj$html_parser$Html$Parser$Util$toVirtualDomEach = function (node) {
 			return $elm$html$Html$text('');
 	}
 };
-var $author$project$Blog$init = function (maybeFileName) {
-	if (maybeFileName.$ === 'Nothing') {
-		return _Utils_Tuple2(
-			$author$project$Blog$Index(
-				{error: $elm$core$Maybe$Nothing, posts: $elm$core$Maybe$Nothing}),
-			$author$project$Blog$fetchPosts);
-	} else {
-		var fileName = maybeFileName.a;
-		return _Utils_Tuple2(
-			$author$project$Blog$LoadingPost(fileName),
-			$elm$http$Http$get(
-				{
-					expect: $elm$http$Http$expectString(
-						A2(
-							$elm$core$Basics$composeR,
-							$elm$core$Result$mapError($author$project$Blog$PostGetError),
-							A2(
-								$elm$core$Basics$composeR,
-								$elm$core$Result$andThen(
-									function (htmlText) {
-										var _v1 = $hecrj$html_parser$Html$Parser$run(htmlText);
-										if (_v1.$ === 'Err') {
-											var deadEnds = _v1.a;
-											return function (_v2) {
-												return $elm$core$Result$Err($author$project$Blog$PostParseError);
-											}(
-												A2($elm$core$Debug$log, 'Dead ends', deadEnds));
-										} else {
-											var node = _v1.a;
-											return $elm$core$Result$Ok(
-												$hecrj$html_parser$Html$Parser$Util$toVirtualDom(node));
-										}
-									}),
-								$author$project$Blog$PostLoaded))),
-					url: 'blog/posts/' + (fileName + '.html')
-				}));
-	}
-};
-var $elm$core$Platform$Cmd$map = _Platform_map;
-var $elm$core$Tuple$mapFirst = F2(
-	function (func, _v0) {
-		var x = _v0.a;
-		var y = _v0.b;
-		return _Utils_Tuple2(
-			func(x),
-			y);
-	});
-var $elm$core$Tuple$mapSecond = F2(
-	function (func, _v0) {
-		var x = _v0.a;
-		var y = _v0.b;
-		return _Utils_Tuple2(
-			x,
-			func(y));
-	});
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Main$changeRoute = F2(
-	function (route, model) {
-		if (route.$ === 'Nothing') {
-			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-		} else {
-			if (route.a.$ === 'HomeRoute') {
-				var _v1 = route.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							page: $author$project$Main$Home(
-								{field: $author$project$Main$Software})
-						}),
-					$elm$core$Platform$Cmd$none);
-			} else {
-				var maybeFileName = route.a.a;
-				return A2(
-					$elm$core$Tuple$mapSecond,
-					$elm$core$Platform$Cmd$map($author$project$Main$BlogMsg),
-					A2(
-						$elm$core$Tuple$mapFirst,
-						function (blogModel) {
-							return _Utils_update(
-								model,
-								{
-									page: $author$project$Main$Blog(blogModel)
-								});
-						},
-						$author$project$Blog$init(maybeFileName)));
-			}
-		}
-	});
-var $elm$url$Url$Parser$State = F5(
-	function (visited, unvisited, params, frag, value) {
-		return {frag: frag, params: params, unvisited: unvisited, value: value, visited: visited};
-	});
-var $elm$url$Url$Parser$getFirstMatch = function (states) {
-	getFirstMatch:
-	while (true) {
-		if (!states.b) {
-			return $elm$core$Maybe$Nothing;
-		} else {
-			var state = states.a;
-			var rest = states.b;
-			var _v1 = state.unvisited;
-			if (!_v1.b) {
-				return $elm$core$Maybe$Just(state.value);
-			} else {
-				if ((_v1.a === '') && (!_v1.b.b)) {
-					return $elm$core$Maybe$Just(state.value);
-				} else {
-					var $temp$states = rest;
-					states = $temp$states;
-					continue getFirstMatch;
-				}
-			}
-		}
-	}
-};
-var $elm$url$Url$Parser$removeFinalEmpty = function (segments) {
-	if (!segments.b) {
-		return _List_Nil;
-	} else {
-		if ((segments.a === '') && (!segments.b.b)) {
-			return _List_Nil;
-		} else {
-			var segment = segments.a;
-			var rest = segments.b;
-			return A2(
-				$elm$core$List$cons,
-				segment,
-				$elm$url$Url$Parser$removeFinalEmpty(rest));
-		}
-	}
-};
-var $elm$url$Url$Parser$preparePath = function (path) {
-	var _v0 = A2($elm$core$String$split, '/', path);
-	if (_v0.b && (_v0.a === '')) {
-		var segments = _v0.b;
-		return $elm$url$Url$Parser$removeFinalEmpty(segments);
-	} else {
-		var segments = _v0;
-		return $elm$url$Url$Parser$removeFinalEmpty(segments);
-	}
-};
-var $elm$url$Url$Parser$addToParametersHelp = F2(
-	function (value, maybeList) {
-		if (maybeList.$ === 'Nothing') {
-			return $elm$core$Maybe$Just(
-				_List_fromArray(
-					[value]));
-		} else {
-			var list = maybeList.a;
-			return $elm$core$Maybe$Just(
-				A2($elm$core$List$cons, value, list));
-		}
-	});
-var $elm$url$Url$percentDecode = _Url_percentDecode;
-var $elm$url$Url$Parser$addParam = F2(
-	function (segment, dict) {
-		var _v0 = A2($elm$core$String$split, '=', segment);
-		if ((_v0.b && _v0.b.b) && (!_v0.b.b.b)) {
-			var rawKey = _v0.a;
-			var _v1 = _v0.b;
-			var rawValue = _v1.a;
-			var _v2 = $elm$url$Url$percentDecode(rawKey);
-			if (_v2.$ === 'Nothing') {
-				return dict;
-			} else {
-				var key = _v2.a;
-				var _v3 = $elm$url$Url$percentDecode(rawValue);
-				if (_v3.$ === 'Nothing') {
-					return dict;
-				} else {
-					var value = _v3.a;
-					return A3(
-						$elm$core$Dict$update,
-						key,
-						$elm$url$Url$Parser$addToParametersHelp(value),
-						dict);
-				}
-			}
-		} else {
-			return dict;
-		}
-	});
-var $elm$url$Url$Parser$prepareQuery = function (maybeQuery) {
-	if (maybeQuery.$ === 'Nothing') {
-		return $elm$core$Dict$empty;
-	} else {
-		var qry = maybeQuery.a;
-		return A3(
-			$elm$core$List$foldr,
-			$elm$url$Url$Parser$addParam,
-			$elm$core$Dict$empty,
-			A2($elm$core$String$split, '&', qry));
-	}
-};
-var $elm$url$Url$Parser$parse = F2(
-	function (_v0, url) {
-		var parser = _v0.a;
-		return $elm$url$Url$Parser$getFirstMatch(
-			parser(
-				A5(
-					$elm$url$Url$Parser$State,
-					_List_Nil,
-					$elm$url$Url$Parser$preparePath(url.path),
-					$elm$url$Url$Parser$prepareQuery(url.query),
-					url.fragment,
-					$elm$core$Basics$identity)));
-	});
-var $author$project$Main$BlogRoute = function (a) {
-	return {$: 'BlogRoute', a: a};
-};
-var $author$project$Main$HomeRoute = {$: 'HomeRoute'};
-var $elm$url$Url$Parser$Parser = function (a) {
-	return {$: 'Parser', a: a};
-};
-var $elm$url$Url$Parser$mapState = F2(
-	function (func, _v0) {
-		var visited = _v0.visited;
-		var unvisited = _v0.unvisited;
-		var params = _v0.params;
-		var frag = _v0.frag;
-		var value = _v0.value;
-		return A5(
-			$elm$url$Url$Parser$State,
-			visited,
-			unvisited,
-			params,
-			frag,
-			func(value));
-	});
-var $elm$url$Url$Parser$map = F2(
-	function (subValue, _v0) {
-		var parseArg = _v0.a;
-		return $elm$url$Url$Parser$Parser(
-			function (_v1) {
-				var visited = _v1.visited;
-				var unvisited = _v1.unvisited;
-				var params = _v1.params;
-				var frag = _v1.frag;
-				var value = _v1.value;
-				return A2(
-					$elm$core$List$map,
-					$elm$url$Url$Parser$mapState(value),
-					parseArg(
-						A5($elm$url$Url$Parser$State, visited, unvisited, params, frag, subValue)));
-			});
-	});
-var $elm$core$List$append = F2(
-	function (xs, ys) {
-		if (!ys.b) {
-			return xs;
-		} else {
-			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
-		}
-	});
-var $elm$core$List$concat = function (lists) {
-	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
-};
-var $elm$core$List$concatMap = F2(
-	function (f, list) {
-		return $elm$core$List$concat(
-			A2($elm$core$List$map, f, list));
-	});
-var $elm$url$Url$Parser$oneOf = function (parsers) {
-	return $elm$url$Url$Parser$Parser(
-		function (state) {
-			return A2(
-				$elm$core$List$concatMap,
-				function (_v0) {
-					var parser = _v0.a;
-					return parser(state);
-				},
-				parsers);
-		});
-};
-var $elm$url$Url$Parser$s = function (str) {
-	return $elm$url$Url$Parser$Parser(
-		function (_v0) {
-			var visited = _v0.visited;
-			var unvisited = _v0.unvisited;
-			var params = _v0.params;
-			var frag = _v0.frag;
-			var value = _v0.value;
-			if (!unvisited.b) {
-				return _List_Nil;
-			} else {
-				var next = unvisited.a;
-				var rest = unvisited.b;
-				return _Utils_eq(next, str) ? _List_fromArray(
-					[
-						A5(
-						$elm$url$Url$Parser$State,
-						A2($elm$core$List$cons, next, visited),
-						rest,
-						params,
-						frag,
-						value)
-					]) : _List_Nil;
-			}
-		});
-};
-var $elm$url$Url$Parser$slash = F2(
-	function (_v0, _v1) {
-		var parseBefore = _v0.a;
-		var parseAfter = _v1.a;
-		return $elm$url$Url$Parser$Parser(
-			function (state) {
-				return A2(
-					$elm$core$List$concatMap,
-					parseAfter,
-					parseBefore(state));
-			});
-	});
-var $elm$url$Url$Parser$custom = F2(
-	function (tipe, stringToSomething) {
-		return $elm$url$Url$Parser$Parser(
-			function (_v0) {
-				var visited = _v0.visited;
-				var unvisited = _v0.unvisited;
-				var params = _v0.params;
-				var frag = _v0.frag;
-				var value = _v0.value;
-				if (!unvisited.b) {
-					return _List_Nil;
-				} else {
-					var next = unvisited.a;
-					var rest = unvisited.b;
-					var _v2 = stringToSomething(next);
-					if (_v2.$ === 'Just') {
-						var nextValue = _v2.a;
-						return _List_fromArray(
-							[
-								A5(
-								$elm$url$Url$Parser$State,
-								A2($elm$core$List$cons, next, visited),
-								rest,
-								params,
-								frag,
-								value(nextValue))
-							]);
-					} else {
-						return _List_Nil;
-					}
-				}
-			});
-	});
-var $elm$url$Url$Parser$string = A2($elm$url$Url$Parser$custom, 'STRING', $elm$core$Maybe$Just);
-var $elm$url$Url$Parser$top = $elm$url$Url$Parser$Parser(
-	function (state) {
-		return _List_fromArray(
-			[state]);
-	});
-var $author$project$Main$routeParser = $elm$url$Url$Parser$oneOf(
-	_List_fromArray(
-		[
-			A2($elm$url$Url$Parser$map, $author$project$Main$HomeRoute, $elm$url$Url$Parser$top),
-			A2(
-			$elm$url$Url$Parser$map,
-			$author$project$Main$BlogRoute,
-			A2(
-				$elm$url$Url$Parser$slash,
-				$elm$url$Url$Parser$s('blog'),
-				$elm$url$Url$Parser$oneOf(
-					_List_fromArray(
-						[
-							A2($elm$url$Url$Parser$map, $elm$core$Maybe$Nothing, $elm$url$Url$Parser$top),
-							A2(
-							$elm$url$Url$Parser$map,
-							$elm$core$Maybe$Just,
-							A2(
-								$elm$url$Url$Parser$slash,
-								$elm$url$Url$Parser$s('posts'),
-								$elm$url$Url$Parser$string))
-						]))))
-		]));
-var $author$project$Main$urlToRoute = function (url) {
-	return A2(
-		$elm$url$Url$Parser$parse,
-		$author$project$Main$routeParser,
-		_Utils_update(
-			url,
-			{
-				fragment: $elm$core$Maybe$Nothing,
-				path: A2($elm$core$Maybe$withDefault, '', url.fragment)
-			}));
-};
-var $author$project$Main$init = F3(
-	function (_v0, url, key) {
-		return A2(
-			$author$project$Main$changeRoute,
-			$author$project$Main$urlToRoute(url),
-			A3(
-				$author$project$Main$Model,
-				key,
-				url,
-				$author$project$Main$Home(
-					{field: $author$project$Main$Software})));
-	});
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $author$project$Main$subscriptions = function (model) {
-	return $elm$core$Platform$Sub$none;
-};
-var $elm$browser$Browser$Navigation$load = _Browser_load;
-var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
-var $elm$url$Url$addPort = F2(
-	function (maybePort, starter) {
-		if (maybePort.$ === 'Nothing') {
-			return starter;
-		} else {
-			var port_ = maybePort.a;
-			return starter + (':' + $elm$core$String$fromInt(port_));
-		}
-	});
-var $elm$url$Url$addPrefixed = F3(
-	function (prefix, maybeSegment, starter) {
-		if (maybeSegment.$ === 'Nothing') {
-			return starter;
-		} else {
-			var segment = maybeSegment.a;
-			return _Utils_ap(
-				starter,
-				_Utils_ap(prefix, segment));
-		}
-	});
-var $elm$url$Url$toString = function (url) {
-	var http = function () {
-		var _v0 = url.protocol;
-		if (_v0.$ === 'Http') {
-			return 'http://';
-		} else {
-			return 'https://';
-		}
-	}();
-	return A3(
-		$elm$url$Url$addPrefixed,
-		'#',
-		url.fragment,
-		A3(
-			$elm$url$Url$addPrefixed,
-			'?',
-			url.query,
-			_Utils_ap(
-				A2(
-					$elm$url$Url$addPort,
-					url.port_,
-					_Utils_ap(http, url.host)),
-				url.path)));
-};
-var $author$project$Blog$PostPage = function (a) {
-	return {$: 'PostPage', a: a};
-};
-var $elm$json$Json$Encode$null = _Json_encodeNull;
-var $author$project$Ports$highlightAll = _Platform_outgoingPort(
-	'highlightAll',
-	function ($) {
-		return $elm$json$Json$Encode$null;
-	});
-var $author$project$Blog$httpErrorToString = function (error) {
-	switch (error.$) {
-		case 'BadUrl':
-			var url = error.a;
-			return 'Bad URL: ' + url;
-		case 'BadStatus':
-			var status = error.a;
-			return 'Bad status: ' + $elm$core$String$fromInt(status);
-		case 'BadBody':
-			var body = error.a;
-			return 'Bad body: \n' + body;
-		case 'Timeout':
-			return 'Request timed out';
-		default:
-			return 'Network error';
-	}
-};
 var $author$project$Blog$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
-			case 'LoadPosts':
-				var posts = msg.a;
-				return _Utils_Tuple2(
-					$author$project$Blog$Index(
-						{
-							error: $elm$core$Maybe$Nothing,
-							posts: $elm$core$Maybe$Just(posts)
-						}),
-					$elm$core$Platform$Cmd$none);
-			case 'LoadPostsError':
-				var error = msg.a;
-				var message = $author$project$Blog$httpErrorToString(error);
-				return _Utils_Tuple2(
-					$author$project$Blog$Index(
-						{
-							error: $elm$core$Maybe$Just(message),
-							posts: $elm$core$Maybe$Nothing
-						}),
-					$elm$core$Platform$Cmd$none);
-			default:
+			case 'IndexPostsLoaded':
 				if (msg.a.$ === 'Ok') {
-					var content = msg.a.a;
+					var posts = msg.a.a;
+					return _Utils_Tuple2(
+						$author$project$Blog$Index(
+							{
+								error: $elm$core$Maybe$Nothing,
+								posts: $elm$core$Maybe$Just(posts)
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = msg.a.a;
+					return _Utils_Tuple2(
+						$author$project$Blog$Index(
+							{
+								error: $elm$core$Maybe$Just(
+									$author$project$Blog$httpErrorToString(error)),
+								posts: $elm$core$Maybe$Nothing
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'PostLoaded':
+				if (msg.a.$ === 'Ok') {
+					var post = msg.a.a;
 					return _Utils_Tuple2(
 						$author$project$Blog$PostPage(
-							{content: content}),
+							{content: _List_Nil, post: post}),
+						$elm$http$Http$get(
+							{
+								expect: $elm$http$Http$expectString(
+									A2(
+										$elm$core$Basics$composeR,
+										$elm$core$Result$mapError($author$project$Blog$PostBodyGetError),
+										A2(
+											$elm$core$Basics$composeR,
+											$elm$core$Result$andThen(
+												function (htmlText) {
+													var _v1 = $hecrj$html_parser$Html$Parser$run(htmlText);
+													if (_v1.$ === 'Err') {
+														var deadEnds = _v1.a;
+														return function (_v2) {
+															return $elm$core$Result$Err($author$project$Blog$PostBodyParseError);
+														}(
+															A2($elm$core$Debug$log, 'Dead ends', deadEnds));
+													} else {
+														var node = _v1.a;
+														return $elm$core$Result$Ok(
+															$hecrj$html_parser$Html$Parser$Util$toVirtualDom(node));
+													}
+												}),
+											A2(
+												$elm$core$Basics$composeR,
+												$elm$core$Result$map(
+													function (body) {
+														return _Utils_Tuple2(post, body);
+													}),
+												$author$project$Blog$PostBodyLoaded)))),
+								url: 'blog/posts/' + (post.fileName + '.html')
+							}));
+				} else {
+					if (msg.a.a.$ === 'PostsGetError') {
+						var error = msg.a.a.a;
+						return _Utils_Tuple2(
+							$author$project$Blog$Index(
+								{
+									error: $elm$core$Maybe$Just(
+										$author$project$Blog$httpErrorToString(error)),
+									posts: $elm$core$Maybe$Nothing
+								}),
+							$elm$core$Platform$Cmd$none);
+					} else {
+						var fileName = msg.a.a.a;
+						return _Utils_Tuple2(
+							$author$project$Blog$Index(
+								{
+									error: $elm$core$Maybe$Just('Post does not exist: ' + fileName),
+									posts: $elm$core$Maybe$Nothing
+								}),
+							$elm$core$Platform$Cmd$none);
+					}
+				}
+			default:
+				if (msg.a.$ === 'Ok') {
+					var _v3 = msg.a.a;
+					var post = _v3.a;
+					var content = _v3.b;
+					return _Utils_Tuple2(
+						$author$project$Blog$PostPage(
+							{content: content, post: post}),
 						$author$project$Ports$highlightAll(_Utils_Tuple0));
 				} else {
 					var error = msg.a.a;
 					var message = function () {
-						if (error.$ === 'PostGetError') {
+						if (error.$ === 'PostBodyGetError') {
 							var httpError = error.a;
 							return $author$project$Blog$httpErrorToString(httpError);
 						} else {
@@ -10824,6 +10908,10 @@ var $author$project$Main$update = F2(
 	});
 var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$html$Html$ul = _VirtualDom_node('ul');
+var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -10832,26 +10920,6 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			key,
 			$elm$json$Json$Encode$string(string));
 	});
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
-var $author$project$Blog$viewLoading = A2(
-	$elm$html$Html$div,
-	_List_Nil,
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$h2,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Loading...')
-				]))
-		]));
-var $elm$html$Html$ul = _VirtualDom_node('ul');
-var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -11023,7 +11091,7 @@ var $author$project$Blog$posixToYearMonthDay = function (posix) {
 					[$elm$time$Time$toYear, $author$project$Blog$posixToMonthInt, $elm$time$Time$toDay]))));
 };
 var $elm$html$Html$span = _VirtualDom_node('span');
-var $author$project$Blog$viewPost = function (post) {
+var $author$project$Blog$viewIndexPost = function (post) {
 	return A2(
 		$elm$html$Html$li,
 		_List_Nil,
@@ -11050,12 +11118,26 @@ var $author$project$Blog$viewPost = function (post) {
 					]))
 			]));
 };
-var $author$project$Blog$viewPosts = function (posts) {
+var $author$project$Blog$viewIndexPosts = function (posts) {
 	return A2(
 		$elm$html$Html$ul,
 		_List_Nil,
-		A2($elm$core$List$map, $author$project$Blog$viewPost, posts));
+		A2($elm$core$List$map, $author$project$Blog$viewIndexPost, posts));
 };
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $author$project$Blog$viewLoading = A2(
+	$elm$html$Html$div,
+	_List_Nil,
+	_List_fromArray(
+		[
+			A2(
+			$elm$html$Html$h2,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Loading...')
+				]))
+		]));
 var $author$project$Blog$viewIndex = F2(
 	function (maybePosts, maybeError) {
 		return A2(
@@ -11087,7 +11169,7 @@ var $author$project$Blog$viewIndex = F2(
 					function () {
 					if (maybePosts.$ === 'Just') {
 						var posts = maybePosts.a;
-						return $author$project$Blog$viewPosts(posts);
+						return $author$project$Blog$viewIndexPosts(posts);
 					} else {
 						return $author$project$Blog$viewLoading;
 					}
@@ -11109,6 +11191,113 @@ var $author$project$Blog$viewLoadingPost = function (fileName) {
 					]))
 			]));
 };
+var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
+var $elm$html$Html$Attributes$datetime = _VirtualDom_attribute('datetime');
+var $elm$html$Html$header = _VirtualDom_node('header');
+var $author$project$Blog$posixToMonthString = F2(
+	function (zone, posix) {
+		var _v0 = A2($elm$time$Time$toMonth, zone, posix);
+		switch (_v0.$) {
+			case 'Jan':
+				return 'January';
+			case 'Feb':
+				return 'February';
+			case 'Mar':
+				return 'March';
+			case 'Apr':
+				return 'April';
+			case 'May':
+				return 'May';
+			case 'Jun':
+				return 'June';
+			case 'Jul':
+				return 'July';
+			case 'Aug':
+				return 'August';
+			case 'Sep':
+				return 'September';
+			case 'Oct':
+				return 'October';
+			case 'Nov':
+				return 'November';
+			default:
+				return 'December';
+		}
+	});
+var $author$project$Blog$posixToMonthNameDayYear = F2(
+	function (zone, posix) {
+		return A2(
+			$elm$core$String$left,
+			3,
+			A2($author$project$Blog$posixToMonthString, zone, posix)) + (' ' + ($elm$core$String$fromInt(
+			A2($elm$time$Time$toDay, zone, posix)) + (', ' + $elm$core$String$fromInt(
+			A2($elm$time$Time$toYear, zone, posix)))));
+	});
+var $elm$html$Html$time = _VirtualDom_node('time');
+var $author$project$Blog$viewPostHeader = function (post) {
+	return A2(
+		$elm$html$Html$header,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$a,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$href('#/blog/posts/' + post.fileName)
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$h1,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text(post.title)
+							]))
+					])),
+				A2(
+				$elm$html$Html$a,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$href('#/blog'),
+						$elm$html$Html$Attributes$class('back')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Back to blog')
+					])),
+				$elm$html$Html$text(' - '),
+				A2(
+				$elm$html$Html$time,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$datetime(
+						$author$project$Blog$posixToYearMonthDay(post.date))
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						A2($author$project$Blog$posixToMonthNameDayYear, $elm$time$Time$utc, post.date))
+					]))
+			]));
+};
+var $author$project$Blog$viewPostPage = function (_v0) {
+	var post = _v0.post;
+	var content = _v0.content;
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('blog'),
+				$elm$html$Html$Attributes$id('blog')
+			]),
+		A2(
+			$elm$core$List$cons,
+			$author$project$Blog$viewPostHeader(post),
+			content));
+};
 var $author$project$Blog$view = function (model) {
 	switch (model.$) {
 		case 'Index':
@@ -11118,16 +11307,12 @@ var $author$project$Blog$view = function (model) {
 		case 'LoadingPost':
 			var fileName = model.a;
 			return $author$project$Blog$viewLoadingPost(fileName);
+		case 'LoadingPostBody':
+			var post = model.a;
+			return $author$project$Blog$viewLoadingPost(post.fileName);
 		default:
-			var content = model.a.content;
-			return A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('blog'),
-						$elm$html$Html$Attributes$id('blog')
-					]),
-				content);
+			var post = model.a;
+			return $author$project$Blog$viewPostPage(post);
 	}
 };
 var $author$project$Main$MachineLearning = {$: 'MachineLearning'};

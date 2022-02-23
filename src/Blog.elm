@@ -18,8 +18,10 @@ type Model
         , error: Maybe String
         }
     | LoadingPost String
+    | LoadingPostBody Post
     | PostPage
-        { content : List (Html Msg)
+        { post: Post
+        , content : List (Html Msg)
         }
 
 
@@ -31,14 +33,18 @@ type alias Post =
 
 
 type Msg
-    = LoadPosts (List Post)
-    | LoadPostsError Http.Error
-    | PostLoaded (Result PostLoadedError (List (Html Msg)))
+    = IndexPostsLoaded (Result Http.Error (List Post))
+    | PostLoaded (Result PostLoadedError Post)
+    | PostBodyLoaded (Result PostBodyLoadedError (Post, List (Html Msg)))
 
 
 type PostLoadedError
-    = PostGetError Http.Error
-    | PostParseError
+    = PostsGetError Http.Error
+    | PostDoesNotExist String
+
+type PostBodyLoadedError
+    = PostBodyGetError Http.Error
+    | PostBodyParseError
 
 
 httpErrorToString : Http.Error -> String
@@ -68,42 +74,28 @@ init maybeFileName =
                 { posts = Nothing
                 , error = Nothing
                 }
-            , fetchPosts
+            , fetchPosts IndexPostsLoaded
             )
 
         Just fileName ->
             ( LoadingPost fileName
-            , Http.get
-                { url = "blog/posts/" ++ fileName ++ ".html"
-                , expect = Http.expectString
-                    ( Result.mapError PostGetError
-                      >> Result.andThen (\htmlText ->
-                          case Html.Parser.run htmlText of
-                              Err deadEnds ->
-                                  Debug.log "Dead ends" deadEnds
-                                  |> \_ -> Err PostParseError
-
-                              Ok node ->
-                                  Ok (Html.Parser.Util.toVirtualDom node))
-                      >> PostLoaded
+            , fetchPosts
+                ( Result.mapError PostsGetError
+                >> Result.andThen
+                    (\posts ->
+                        List.filter (\post -> post.fileName == fileName) posts
+                        |> List.head
+                        |> Result.fromMaybe (PostDoesNotExist fileName)
                     )
-                }
+                >> PostLoaded
+                )
             )
 
-fetchPosts : Cmd Msg
-fetchPosts =
+fetchPosts : (Result Http.Error (List Post) -> Msg) -> Cmd Msg
+fetchPosts msg =
     Http.get
         { url = "./blog/posts.json"
-        , expect =
-            Http.expectJson
-                (\result ->
-                    case result of
-                        Ok posts ->
-                            LoadPosts posts
-                        Err error ->
-                            LoadPostsError error
-                )
-                postsDecoder
+        , expect = Http.expectJson msg postsDecoder
         }
 
 
@@ -120,7 +112,7 @@ postsDecoder =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
-        LoadPosts posts ->
+        IndexPostsLoaded (Result.Ok posts) ->
             ( Index
                 { posts = Just posts
                 , error = Nothing
@@ -128,29 +120,67 @@ update msg model =
             , Cmd.none
             )
 
-        LoadPostsError error ->
-            let message =
-                    httpErrorToString error
-            in
-                ( Index
-                    { posts = Nothing
-                    , error = Just message
-                    }
-                , Cmd.none
-                )
+        IndexPostsLoaded (Result.Err error) ->
+            ( Index
+                { posts = Nothing
+                , error = Just (httpErrorToString error)
+                }
+            , Cmd.none
+            )
 
-        PostLoaded (Ok content) ->
+        PostLoaded (Result.Ok post) ->
             ( PostPage
-                { content = content
+                { post = post
+                , content = []
+                }
+            , Http.get
+                { url = "blog/posts/" ++ post.fileName ++ ".html"
+                , expect =
+                    Http.expectString
+                        ( Result.mapError PostBodyGetError
+                          >> Result.andThen (\htmlText ->
+                              case Html.Parser.run htmlText of
+                                  Err deadEnds ->
+                                      Debug.log "Dead ends" deadEnds
+                                      |> \_ -> Err PostBodyParseError
+
+                                  Ok node ->
+                                      Ok (Html.Parser.Util.toVirtualDom node))
+                          >> Result.map (\body -> (post, body))
+                          >> PostBodyLoaded
+                        )
+                }
+            )
+
+        PostLoaded (Result.Err (PostsGetError error)) ->
+            ( Index
+                { posts = Nothing
+                , error = Just (httpErrorToString error)
+                }
+            , Cmd.none
+            )
+
+        PostLoaded (Result.Err (PostDoesNotExist fileName)) ->
+            ( Index
+                { posts = Nothing
+                , error = Just ("Post does not exist: " ++ fileName)
+                }
+            , Cmd.none
+            )
+
+        PostBodyLoaded (Ok (post, content)) ->
+            ( PostPage
+                { post = post
+                , content = content
                 }
             , highlightAll()
             )
 
-        PostLoaded (Err error) ->
+        PostBodyLoaded (Err error) ->
             let message =
                    case error of
-                       PostGetError httpError -> httpErrorToString httpError
-                       PostParseError -> "File is not a post"
+                       PostBodyGetError httpError -> httpErrorToString httpError
+                       PostBodyParseError -> "File is not a post"
             in
                 ( Index
                     { posts = Nothing
@@ -168,12 +198,11 @@ view model =
         LoadingPost fileName ->
             viewLoadingPost fileName
 
-        PostPage { content } ->
-            div
-                [ class "blog"
-                , id "blog"
-                ]
-                content
+        LoadingPostBody post ->
+            viewLoadingPost post.fileName
+
+        PostPage post ->
+            viewPostPage post
 
 
 viewIndex : Maybe (List Post) -> Maybe String -> Html Msg
@@ -187,7 +216,7 @@ viewIndex maybePosts maybeError =
             )
         , case maybePosts of
             Just posts ->
-                viewPosts posts
+                viewIndexPosts posts
 
             Nothing ->
                 viewLoading
@@ -208,14 +237,14 @@ viewLoadingPost fileName =
         ]
 
 
-viewPosts : List Post -> Html Msg
-viewPosts posts =
+viewIndexPosts : List Post -> Html Msg
+viewIndexPosts posts =
     ul []
-        (List.map viewPost posts)
+        (List.map viewIndexPost posts)
 
 
-viewPost : Post -> Html Msg
-viewPost post =
+viewIndexPost : Post -> Html Msg
+viewIndexPost post =
     li []
         [ a
             [ href ("#/blog/posts/" ++ post.fileName)
@@ -224,6 +253,40 @@ viewPost post =
             ]
         , text " - "
         , span [] [ text (posixToYearMonthDay post.date) ]
+        ]
+
+
+viewPostPage : { post: Post
+           , content : List (Html Msg)
+           } -> Html Msg
+viewPostPage { post, content } =
+    div
+        [ class "blog"
+        , id "blog"
+        ]
+        (viewPostHeader post :: content)
+
+
+viewPostHeader : Post -> Html Msg
+viewPostHeader post =
+    header []
+        [ a
+            [ href ("#/blog/posts/" ++ post.fileName)
+            ]
+            [ h1 [] [ text (post.title) ]
+            ]
+        , a
+            [ href "#/blog"
+            , class "back"
+            ]
+            [ text "Back to blog"
+            ]
+        , text " - "
+        , time
+            [ datetime (posixToYearMonthDay post.date)
+            ]
+            [ text (posixToMonthNameDayYear Time.utc post.date)
+            ]
         ]
 
 
@@ -253,4 +316,30 @@ posixToMonthInt zone posix =
         Time.Oct -> 10
         Time.Nov -> 11
         Time.Dec -> 12
+
+
+posixToMonthNameDayYear : Time.Zone -> Posix -> String
+posixToMonthNameDayYear zone posix =
+    ( posixToMonthString zone posix |> String.left 3 )
+    ++ " "
+    ++ String.fromInt (Time.toDay zone posix)
+    ++ ", "
+    ++ String.fromInt (Time.toYear zone posix)
+
+
+posixToMonthString : Time.Zone -> Posix -> String
+posixToMonthString zone posix =
+    case Time.toMonth zone posix of
+        Time.Jan -> "January"
+        Time.Feb -> "February"
+        Time.Mar -> "March"
+        Time.Apr -> "April"
+        Time.May -> "May"
+        Time.Jun -> "June"
+        Time.Jul -> "July"
+        Time.Aug -> "August"
+        Time.Sep -> "September"
+        Time.Oct -> "October"
+        Time.Nov -> "November"
+        Time.Dec -> "December"
 
