@@ -1,0 +1,205 @@
+<style>
+    /* For when I talk about painting macros.
+     * Using attribute instead of class for ease.
+     */
+    span[blue], em[blue] {
+        color: skyblue;
+    }
+</style>
+<p>
+    You are probably familiar with the <code>#include</code> and
+    <code>#define</code> <i>"commands"</i> in your C or C++ code. These are
+    called preprocessor directives - because they are used to process the text
+    before it is compiled. Today I want to explore the preprocessor,
+    and show you how you can use it in weird and powerful ways.
+</p>
+<h2>Simple Macros</h2>
+<p>
+    Okay, macros. They look like functions but they are not. Here is a simple
+    example of some naive macro usage:
+</p>
+<pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAX(a,b) a &lt; b ? b : a
+
+int getInt() {
+    int i;
+    scanf("%d", &i);
+    return i;
+}
+
+int main() {
+    printf("%d\n", MAX(0, getInt()) + 1);
+    return 0;
+}
+</code></pre>
+<p>
+    Easy, we have a program that takes some input and returns it or 0 if it was
+    negative. What's the problem? First, macros simply take text arguments and
+    expand their contents into the code. <code>MAX(a, b) + 1</code> expands to
+    <code>a &lt; b ? b : a + 1</code> - which is not what we want
+    (notice that we have <code>a + 1</code> but <code>b</code>).
+    We can add parentheses to fix this:
+</p>
+<pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAX(a,b) ((a) &lt; (b) ? (b) : (a))
+
+int main() {
+    printf("%d\n", MAX(0, getInt()) + 1);
+    return 0;
+}
+</code></pre>
+<p>
+    Cool, but we still have a problem. <code>b</code> gets replaced by
+    <code>getInt()</code> twice, so we get 2 calls to <code>getInt()</code>.
+    We want to get the input once, so we have to write:
+</p>
+<pre><code>
+#include &lt;stdio.h&gt;
+
+#define MAX(a,b) ((a) &lt; (b) ? (b) : (a))
+
+int main() {
+    int i = getInt();
+    printf("%d\n", MAX(0, i) + 1);
+    return 0;
+}
+</code></pre>
+<p>
+    Now I know you understand simple macros.
+    But what if we want to do something more complicated?
+</p>
+<h2>Macros with Macro Arguments</h2>
+<p>
+    Macros just take text arguments and expand their body, and we use this
+    to generate code.
+    <br>
+    What if the code we generate uses macros itself?
+</p>
+<pre><code>
+#define INC(X) ((X) + 1)
+#define APPLY(M, ARGS) M ARGS
+
+APPLY(INC, (5))
+</code></pre>
+<p>
+    The last line expands correctly to <code>((5) + 1)</code>.
+    You can check for yourself in <a href="https://godbolt.org/">godbolt.org</a>
+    (Select a gcc compiler and enter <em>"-E"</em> where it says
+    "Compiler Options").
+</p>
+<p>
+    Cool! Macros can use macros.
+</p>
+<p>
+    Let's try one more thing, can we use <code>APPLY</code> with itself?
+</p>
+<pre><code>
+#define INC(X) ((X) + 1)
+#define APPLY(M, ARGS) M ARGS
+
+APPLY(APPLY, (INC, (5)))
+</code></pre>
+<p>
+    Surprisingly, this expands into <code>APPLY (INC, (5))</code>,
+    and not to <code>((5) + 1)</code>.
+    Why didn't the <code>APPLY</code> expand like
+    <code>INC</code> in the previous example?
+</p>
+<h2>Painting with Macros 🎨🖌</h2>
+<p>
+    What happens when a macro is expanded?
+</p>
+<p>
+    First, it's arguments are expanded.
+    <br>
+    Second, the preprocessor creates a <em>disabling context</em>
+    and adds the current macro. I'll explain this later.
+    <br>
+    Then the preprocessor scans it's body, token by token,
+    and adds them to the text.
+    When it finds an identifier token, it does one of 2 things:
+    <ol>
+        <li>
+            If the identifier is in the <em>disabling context</em>,
+            it gets disabled
+            and added to the text as is.
+            This is called being
+            <em blue>painted blue</em>.
+        </li>
+        <li>
+            If the identifier
+            is <strong>not</strong> in the <em>disabling context</em>,
+            was <strong>not</strong>
+            <em blue>painted blue</em>,
+            and can be expanded, it gets expanded and added to the text.
+            It's disabling context will contain itself, along with everything
+            in the current disabling context.
+        </li>
+    </ol>
+</p>
+<p>
+    The disabling context is a way to keep macros from expanding forever - 
+    It's just a mechanism to block recursion.
+    <br>
+    It's a stack of macros that are currently being expanded, so should not be
+    expanded again.
+</p>
+<p>
+    Once a macro call has been <em blue>painted blue</em>,
+    it cannot be expanded <em>forever</em> 💙.
+</p>
+<p>
+    Alright, so it seems recursion is a no go. What can we do to make it work?
+</p>
+<h3>Recursion Anyway 🔁</h3>
+<p>
+    Idea - Let's try to use a macro to expand itself recursively, without
+    having it appear inside of itself.
+</p>
+<p>
+    We want to have a macro <code>A</code> call some macro <code>B</code>
+    that will expand <code>A</code>.
+</p>
+<pre><code>
+#define EMPTY
+#define A() a was called! B EMPTY ()
+#define B() b was called! A()
+
+A()
+</code></pre>
+<p>
+    This is close to what I mean. We have <code>A</code> that expands
+    to <code>a was called! B()</code>
+    (because <code>EMPTY</code> expands to nothing)
+    So after <code>A</code> expanded, B is expandable and should expand
+    to
+    <code>
+        b was called! a was called!
+        <span blue>B</span>()
+    </code>
+    <br>
+</p>
+<p>
+    The problem - it doesn't.
+</p>
+<p>
+    After passing through all of <code>A</code>'s body,
+    B just stays there. It won't expand on it's own.
+    But we do have a solution:
+</p>
+<h2>Using <code>EVAL</code></h2>
+<p>
+    We want to define a macro that will force it's arguments to expand.
+</p>
+<pre><code>
+#define EVAL0(...) __VA_ARGS__
+#define EVAL1(...) EVAL0 (EVAL0 (EVAL0 (__VA_ARGS__)))
+#define EVAL2(...) EVAL1 (EVAL1 (EVAL1 (__VA_ARGS__)))
+#define EVAL3(...) EVAL2 (EVAL2 (EVAL2 (__VA_ARGS__)))
+#define EVAL4(...) EVAL3 (EVAL3 (EVAL3 (__VA_ARGS__)))
+#define EVAL(...)  EVAL4 (EVAL4 (EVAL4 (__VA_ARGS__)))
+</code></pre>
