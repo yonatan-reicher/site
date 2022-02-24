@@ -3,18 +3,20 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Browser
+import Browser exposing (Document)
 import Browser.Navigation as Nav
 import Url
 import Url.Parser exposing ((</>))
+
 import Blog
+import Home
 
 
 type alias Flags = ()
 
 
 type Page
-    = Home { field: Field }
+    = Home Home.Model
     | Blog Blog.Model
 
 
@@ -25,25 +27,11 @@ type alias Model =
     }
 
 
-type Field
-    = Software
-    | Web
-    | MachineLearning
-
-
 type Msg
-    = SetField Field
-    | UrlChanged Url.Url
+    = UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
+    | HomeMsg Home.Msg
     | BlogMsg Blog.Msg
-
-
-fieldToString : Field -> String
-fieldToString field =
-    case field of
-        Software -> "software"
-        Web -> "web"
-        MachineLearning -> "machine learning"
 
 
 type Route
@@ -80,7 +68,7 @@ changeRoute route model =
         Nothing -> (model, Cmd.none)
 
         Just HomeRoute ->
-            ({ model | page = Home { field = Software } }
+            ({ model | page = Home () }
             , Cmd.none
             )
 
@@ -106,20 +94,17 @@ main =
 
 init : Flags -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
 init () url key =
-    Model key url (Home { field = Software })
+    Model key url (Home ())
     |> changeRoute (urlToRoute url)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-    case msg of
-        SetField field ->
-            ({ model | page = Home { field = field } }, Cmd.none) 
-
-        UrlChanged url ->
+    case (msg, model.page) of
+        (UrlChanged url, _) ->
             changeRoute (urlToRoute url) model
 
-        LinkClicked request ->
+        (LinkClicked request, _) ->
             case request of
                 Browser.Internal url ->
                     (model, Nav.pushUrl model.key (Url.toString url))
@@ -127,83 +112,52 @@ update msg model =
                 Browser.External href ->
                     (model, Nav.load href)
 
-        BlogMsg blogMsg ->
-            case model.page of
-                Blog blogModel ->
-                    Blog.update blogMsg blogModel
-                    |> Tuple.mapFirst (\newBlogModel ->
-                        { model | page = Blog newBlogModel }
-                    )
-                    |> Tuple.mapSecond (Cmd.map BlogMsg)
+        (HomeMsg homeMsg, Home homeModel) ->
+            Home.update homeMsg homeModel
+            |> Tuple.mapBoth
+                (\newHomeModel -> { model | page = Home newHomeModel })
+                (Cmd.map HomeMsg)
 
-                _ -> (model, Cmd.none)
+        (HomeMsg _, _) -> (model, Cmd.none)
 
-view : Model -> Browser.Document Msg
+        (BlogMsg blogMsg, Blog blogModel) ->
+            Blog.update blogMsg blogModel
+            |> Tuple.mapBoth
+                (\newBlogModel -> { model | page = Blog newBlogModel })
+                (Cmd.map BlogMsg)
+
+        (BlogMsg _, _) -> (model, Cmd.none)
+
+view : Model -> Document Msg
 view model =
-    { title = "Yonatan Reicher | Math & Computer Science"
-    , body =
-        case model.page of
-            Home { field } -> 
-                [ viewHeadings field
-                , viewProjects
-                ]
+    case model.page of
+        Home homeModel ->
+            Home.view homeModel
+            |> mapDocument HomeMsg
 
-            Blog blogModel ->
+        Blog blogModel ->
+            { title = "Yonatan Reicher | Blog"
+            , body =
                 [ Blog.view blogModel
                   |> Html.map BlogMsg
                 ]
+            }
+
+
+mapDocument : (a -> b) -> Document a -> Document b
+mapDocument f { title, body } =
+    { title = title
+    , body = List.map (Html.map f) body
     }
 
 
-viewHeadings : Field -> Html Msg
-viewHeadings field =
-    div [ class "headings" ]
-        [ h1 []
-            [ text "Hello, I'm "
-            , span [ class "name" ] [ text "Yonatan" ]
-            , text "."
-            ]
-        , h1 []
-            [ span [] [ text "I'm a " ]
-            , div [ class "field" ]
-                [ span [ class "highlight" ] [ text (fieldToString field) ]
-                , div [ class "field-options-panel" ]
-                    [ div
-                        [ class "field-option"
-                        , onClick (SetField Software) ]
-                        [ text (fieldToString Software) ]
-                    , div
-                        [ class "field-option"
-                        , onClick (SetField Web) ]
-                        [ text (fieldToString Web) ]
-                    , div
-                        [ class "field-option"
-                        , onClick (SetField MachineLearning) ]
-                        [ text (fieldToString MachineLearning) ]
-                    ]
-                ]
-            , span [] [ text " engineer." ]
-            ]
-        ]
-
-
-viewProjects : Html Msg
-viewProjects =
-    div [ class "projects" ]
-        [ h1 [] [ text "Projects" ]
-        , ul []
-            [ li []
-                [ a [ href "#/blog" ]
-                    [ text "Articles" ]
-                ]
-            , li []
-                [ a [ href "https://gitlab.com/affogato/affogato" ]
-                    [ text "Affogato" ]
-                ]
-            ]
-        ]
-
-
 subscriptions : Model -> Sub Msg
-subscriptions model = Sub.none
+subscriptions model =
+    case model.page of
+        Home homeModel ->
+            Home.subscriptions homeModel
+            |> Sub.map HomeMsg
+
+        Blog _ ->
+            Sub.none
 

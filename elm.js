@@ -5479,7 +5479,6 @@ var $author$project$Main$Model = F3(
 	function (key, url, page) {
 		return {key: key, page: page, url: url};
 	});
-var $author$project$Main$Software = {$: 'Software'};
 var $author$project$Main$Blog = function (a) {
 	return {$: 'Blog', a: a};
 };
@@ -7196,8 +7195,7 @@ var $author$project$Main$changeRoute = F2(
 					_Utils_update(
 						model,
 						{
-							page: $author$project$Main$Home(
-								{field: $author$project$Main$Software})
+							page: $author$project$Main$Home(_Utils_Tuple0)
 						}),
 					$elm$core$Platform$Cmd$none);
 			} else {
@@ -7533,15 +7531,38 @@ var $author$project$Main$init = F3(
 				$author$project$Main$Model,
 				key,
 				url,
-				$author$project$Main$Home(
-					{field: $author$project$Main$Software})));
+				$author$project$Main$Home(_Utils_Tuple0)));
 	});
+var $author$project$Main$HomeMsg = function (a) {
+	return {$: 'HomeMsg', a: a};
+};
+var $elm$core$Platform$Sub$map = _Platform_map;
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $author$project$Main$subscriptions = function (model) {
+var $author$project$Home$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
+var $author$project$Main$subscriptions = function (model) {
+	var _v0 = model.page;
+	if (_v0.$ === 'Home') {
+		var homeModel = _v0.a;
+		return A2(
+			$elm$core$Platform$Sub$map,
+			$author$project$Main$HomeMsg,
+			$author$project$Home$subscriptions(homeModel));
+	} else {
+		return $elm$core$Platform$Sub$none;
+	}
+};
 var $elm$browser$Browser$Navigation$load = _Browser_load;
+var $elm$core$Tuple$mapBoth = F3(
+	function (funcA, funcB, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			funcA(x),
+			funcB(y));
+	});
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
 var $elm$url$Url$addPort = F2(
 	function (maybePort, starter) {
@@ -10848,27 +10869,22 @@ var $author$project$Blog$update = F2(
 				}
 		}
 	});
+var $author$project$Home$update = F2(
+	function (_v0, _v1) {
+		return _Utils_Tuple2(_Utils_Tuple0, $elm$core$Platform$Cmd$none);
+	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
-		switch (msg.$) {
-			case 'SetField':
-				var field = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							page: $author$project$Main$Home(
-								{field: field})
-						}),
-					$elm$core$Platform$Cmd$none);
+		var _v0 = _Utils_Tuple2(msg, model.page);
+		switch (_v0.a.$) {
 			case 'UrlChanged':
-				var url = msg.a;
+				var url = _v0.a.a;
 				return A2(
 					$author$project$Main$changeRoute,
 					$author$project$Main$urlToRoute(url),
 					model);
 			case 'LinkClicked':
-				var request = msg.a;
+				var request = _v0.a.a;
 				if (request.$ === 'Internal') {
 					var url = request.a;
 					return _Utils_Tuple2(
@@ -10883,24 +10899,39 @@ var $author$project$Main$update = F2(
 						model,
 						$elm$browser$Browser$Navigation$load(href));
 				}
+			case 'HomeMsg':
+				if (_v0.b.$ === 'Home') {
+					var homeMsg = _v0.a.a;
+					var homeModel = _v0.b.a;
+					return A3(
+						$elm$core$Tuple$mapBoth,
+						function (newHomeModel) {
+							return _Utils_update(
+								model,
+								{
+									page: $author$project$Main$Home(newHomeModel)
+								});
+						},
+						$elm$core$Platform$Cmd$map($author$project$Main$HomeMsg),
+						A2($author$project$Home$update, homeMsg, homeModel));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 			default:
-				var blogMsg = msg.a;
-				var _v2 = model.page;
-				if (_v2.$ === 'Blog') {
-					var blogModel = _v2.a;
-					return A2(
-						$elm$core$Tuple$mapSecond,
+				if (_v0.b.$ === 'Blog') {
+					var blogMsg = _v0.a.a;
+					var blogModel = _v0.b.a;
+					return A3(
+						$elm$core$Tuple$mapBoth,
+						function (newBlogModel) {
+							return _Utils_update(
+								model,
+								{
+									page: $author$project$Main$Blog(newBlogModel)
+								});
+						},
 						$elm$core$Platform$Cmd$map($author$project$Main$BlogMsg),
-						A2(
-							$elm$core$Tuple$mapFirst,
-							function (newBlogModel) {
-								return _Utils_update(
-									model,
-									{
-										page: $author$project$Main$Blog(newBlogModel)
-									});
-							},
-							A2($author$project$Blog$update, blogMsg, blogModel)));
+						A2($author$project$Blog$update, blogMsg, blogModel));
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
@@ -10908,6 +10939,18 @@ var $author$project$Main$update = F2(
 	});
 var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
+var $author$project$Main$mapDocument = F2(
+	function (f, _v0) {
+		var title = _v0.title;
+		var body = _v0.body;
+		return {
+			body: A2(
+				$elm$core$List$map,
+				$elm$html$Html$map(f),
+				body),
+			title: title
+		};
+	});
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$ul = _VirtualDom_node('ul');
@@ -11315,178 +11358,144 @@ var $author$project$Blog$view = function (model) {
 			return $author$project$Blog$viewPostPage(post);
 	}
 };
-var $author$project$Main$MachineLearning = {$: 'MachineLearning'};
-var $author$project$Main$SetField = function (a) {
-	return {$: 'SetField', a: a};
-};
-var $author$project$Main$Web = {$: 'Web'};
-var $author$project$Main$fieldToString = function (field) {
-	switch (field.$) {
-		case 'Software':
-			return 'software';
-		case 'Web':
-			return 'web';
-		default:
-			return 'machine learning';
-	}
-};
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
-var $author$project$Main$viewHeadings = function (field) {
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('headings')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$h1,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Hello, I\'m '),
-						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('name')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Yonatan')
-							])),
-						$elm$html$Html$text('.')
-					])),
-				A2(
-				$elm$html$Html$h1,
-				_List_Nil,
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$span,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('I\'m a ')
-							])),
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('field')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$span,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('highlight')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text(
-										$author$project$Main$fieldToString(field))
-									])),
-								A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('field-options-panel')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$div,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('field-option'),
-												$elm$html$Html$Events$onClick(
-												$author$project$Main$SetField($author$project$Main$Software))
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(
-												$author$project$Main$fieldToString($author$project$Main$Software))
-											])),
-										A2(
-										$elm$html$Html$div,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('field-option'),
-												$elm$html$Html$Events$onClick(
-												$author$project$Main$SetField($author$project$Main$Web))
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(
-												$author$project$Main$fieldToString($author$project$Main$Web))
-											])),
-										A2(
-										$elm$html$Html$div,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('field-option'),
-												$elm$html$Html$Events$onClick(
-												$author$project$Main$SetField($author$project$Main$MachineLearning))
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(
-												$author$project$Main$fieldToString($author$project$Main$MachineLearning))
-											]))
-									]))
-							])),
-						A2(
-						$elm$html$Html$span,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text(' engineer.')
-							]))
-					]))
-			]));
-};
-var $author$project$Main$viewProjects = A2(
+var $elm$html$Html$p = _VirtualDom_node('p');
+var $author$project$Home$viewAbout = A2(
 	$elm$html$Html$div,
 	_List_fromArray(
 		[
-			$elm$html$Html$Attributes$class('projects')
+			$elm$html$Html$Attributes$class('section'),
+			$elm$html$Html$Attributes$class('about')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$html$Html$h2,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('section-title')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('About')
+				])),
+			A2(
+			$elm$html$Html$p,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('about-text')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('\r\n                Hi, I\'m Yonatan Reicher.\r\n                I\'m studying to become a software engineer.\r\n                Currently, I am earning credit for a degree in Computer Scienece,\r\n                and in my last year of Magshimim.\r\n                I\'m also 17 years old.\r\n                Right now I am working on a project called affogato\r\n                with my friend Gal.\r\n                I am currently in an application process for the IDF.\r\n                ')
+				]))
+		]));
+var $author$project$Home$viewContact = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			$elm$html$Html$Attributes$class('section'),
+			$elm$html$Html$Attributes$class('contact')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$html$Html$h2,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('section-title')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Contact')
+				])),
+			A2(
+			$elm$html$Html$p,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('contact-text')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('\r\n                You can contact me by email at yony252525@gmail.com or by phone\r\n                at 972-58-425-6935.\r\n                ')
+				]))
+		]));
+var $elm$html$Html$br = _VirtualDom_node('br');
+var $author$project$Home$viewHeadings = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			$elm$html$Html$Attributes$class('headings')
 		]),
 	_List_fromArray(
 		[
 			A2(
 			$elm$html$Html$h1,
-			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('title')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Hello, I\'m '),
+					A2(
+					$elm$html$Html$span,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('name')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Yonatan')
+						])),
+					$elm$html$Html$text('.'),
+					A2($elm$html$Html$br, _List_Nil, _List_Nil),
+					$elm$html$Html$text('And I\'m a '),
+					A2(
+					$elm$html$Html$span,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('highlight')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('software engineer')
+						])),
+					$elm$html$Html$text('.')
+				]))
+		]));
+var $author$project$Home$viewProjects = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			$elm$html$Html$Attributes$class('section'),
+			$elm$html$Html$Attributes$class('projects')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$html$Html$h2,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('section-title')
+				]),
 			_List_fromArray(
 				[
 					$elm$html$Html$text('Projects')
 				])),
 			A2(
 			$elm$html$Html$ul,
-			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('projects-list')
+				]),
 			_List_fromArray(
 				[
 					A2(
 					$elm$html$Html$li,
-					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('project')
+						]),
 					_List_fromArray(
 						[
 							A2(
@@ -11497,12 +11506,15 @@ var $author$project$Main$viewProjects = A2(
 								]),
 							_List_fromArray(
 								[
-									$elm$html$Html$text('Articles')
+									$elm$html$Html$text('Articles (work in progress!)')
 								]))
 						])),
 					A2(
 					$elm$html$Html$li,
-					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('project')
+						]),
 					_List_fromArray(
 						[
 							A2(
@@ -11515,33 +11527,56 @@ var $author$project$Main$viewProjects = A2(
 								[
 									$elm$html$Html$text('Affogato')
 								]))
+						])),
+					A2(
+					$elm$html$Html$li,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('project')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$a,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$href('https://github.com/officeBatman/blobs')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Blobs - 2d simulation with raylib')
+								]))
 						]))
 				]))
 		]));
-var $author$project$Main$view = function (model) {
+var $author$project$Home$view = function (_v0) {
 	return {
-		body: function () {
-			var _v0 = model.page;
-			if (_v0.$ === 'Home') {
-				var field = _v0.a.field;
-				return _List_fromArray(
-					[
-						$author$project$Main$viewHeadings(field),
-						$author$project$Main$viewProjects
-					]);
-			} else {
-				var blogModel = _v0.a;
-				return _List_fromArray(
-					[
-						A2(
-						$elm$html$Html$map,
-						$author$project$Main$BlogMsg,
-						$author$project$Blog$view(blogModel))
-					]);
-			}
-		}(),
-		title: 'Yonatan Reicher | Math & Computer Science'
+		body: _List_fromArray(
+			[$author$project$Home$viewHeadings, $author$project$Home$viewProjects, $author$project$Home$viewAbout, $author$project$Home$viewContact]),
+		title: 'Yonatan Reicher | Programing & Computer Science'
 	};
+};
+var $author$project$Main$view = function (model) {
+	var _v0 = model.page;
+	if (_v0.$ === 'Home') {
+		var homeModel = _v0.a;
+		return A2(
+			$author$project$Main$mapDocument,
+			$author$project$Main$HomeMsg,
+			$author$project$Home$view(homeModel));
+	} else {
+		var blogModel = _v0.a;
+		return {
+			body: _List_fromArray(
+				[
+					A2(
+					$elm$html$Html$map,
+					$author$project$Main$BlogMsg,
+					$author$project$Blog$view(blogModel))
+				]),
+			title: 'Yonatan Reicher | Blog'
+		};
+	}
 };
 var $author$project$Main$main = $elm$browser$Browser$application(
 	{init: $author$project$Main$init, onUrlChange: $author$project$Main$UrlChanged, onUrlRequest: $author$project$Main$LinkClicked, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
