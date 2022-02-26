@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser exposing (Document)
+import Navbar exposing (navbar)
 
 
 type alias Flags = ()
@@ -34,6 +35,7 @@ view () =
     { title = "Yonatan Reicher | Programing & Computer Science"
     , body =
         [ viewHeadings
+        , navbar { direction = Navbar.Horizontal }
         , viewProjects
         , viewAbout
         , viewContact

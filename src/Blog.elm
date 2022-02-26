@@ -9,6 +9,7 @@ import Time exposing (Posix)
 import Http
 import Json.Decode as D
 import Json.Decode.Extra as DE
+import Navbar exposing (navbar)
 import Ports exposing (highlightAll)
 
 
@@ -189,8 +190,17 @@ update msg model =
                 , Cmd.none
                 )
 
+
 view : Model -> Html Msg
 view model =
+    div []
+        [ navbar { direction = Navbar.Auto }
+        , main_ [] [ viewContent model ]
+        ]
+
+
+viewContent : Model -> Html Msg
+viewContent model =
     case model of
         Index { posts, error } ->
             viewIndex posts error

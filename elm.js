@@ -10951,10 +10951,9 @@ var $author$project$Main$mapDocument = F2(
 			title: title
 		};
 	});
+var $author$project$Navbar$Auto = {$: 'Auto'};
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $elm$html$Html$ul = _VirtualDom_node('ul');
-var $elm$html$Html$a = _VirtualDom_node('a');
+var $elm$html$Html$main_ = _VirtualDom_node('main');
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -10963,13 +10962,92 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			key,
 			$elm$json$Json$Encode$string(string));
 	});
+var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
+var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$html$Html$li = _VirtualDom_node('li');
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $elm$html$Html$Attributes$src = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'src',
+		_VirtualDom_noJavaScriptOrHtmlUri(url));
+};
+var $author$project$Navbar$navbarItem = function (_v0) {
+	var name = _v0.name;
+	var link = _v0.link;
+	var iconPath = _v0.iconPath;
+	return A2(
+		$elm$html$Html$li,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$a,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$href(link)
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$img,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('navbar-icon'),
+								$elm$html$Html$Attributes$src(iconPath)
+							]),
+						_List_Nil),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('navbar-link-text')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(name)
+							]))
+					]))
+			]));
+};
+var $elm$html$Html$ul = _VirtualDom_node('ul');
+var $author$project$Navbar$navbar = function (_v0) {
+	var direction = _v0.direction;
+	return A2(
+		$elm$html$Html$ul,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('navbar'),
+				function () {
+				switch (direction.$) {
+					case 'Horizontal':
+						return $elm$html$Html$Attributes$class('navbar-horizontal');
+					case 'Vertical':
+						return $elm$html$Html$Attributes$class('navbar-vertical');
+					default:
+						return $elm$html$Html$Attributes$class('navbar-auto');
+				}
+			}()
+			]),
+		A2(
+			$elm$core$List$map,
+			$author$project$Navbar$navbarItem,
+			_List_fromArray(
+				[
+					{iconPath: 'icons/home.svg', link: '#', name: 'Home'},
+					{iconPath: 'icons/blog.svg', link: '#/blog', name: 'Articles'},
+					{iconPath: 'icons/about.svg', link: '#', name: 'About'},
+					{iconPath: 'icons/github.svg', link: 'https://github.com/officebatman', name: 'Github'}
+				])));
+};
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$time$Time$Apr = {$: 'Apr'};
 var $elm$time$Time$Aug = {$: 'Aug'};
 var $elm$time$Time$Dec = {$: 'Dec'};
@@ -11133,7 +11211,6 @@ var $author$project$Blog$posixToYearMonthDay = function (posix) {
 				_List_fromArray(
 					[$elm$time$Time$toYear, $author$project$Blog$posixToMonthInt, $elm$time$Time$toDay]))));
 };
-var $elm$html$Html$span = _VirtualDom_node('span');
 var $author$project$Blog$viewIndexPost = function (post) {
 	return A2(
 		$elm$html$Html$li,
@@ -11234,7 +11311,6 @@ var $author$project$Blog$viewLoadingPost = function (fileName) {
 					]))
 			]));
 };
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$Attributes$datetime = _VirtualDom_attribute('datetime');
 var $elm$html$Html$header = _VirtualDom_node('header');
@@ -11341,7 +11417,7 @@ var $author$project$Blog$viewPostPage = function (_v0) {
 			$author$project$Blog$viewPostHeader(post),
 			content));
 };
-var $author$project$Blog$view = function (model) {
+var $author$project$Blog$viewContent = function (model) {
 	switch (model.$) {
 		case 'Index':
 			var posts = model.a.posts;
@@ -11358,6 +11434,24 @@ var $author$project$Blog$view = function (model) {
 			return $author$project$Blog$viewPostPage(post);
 	}
 };
+var $author$project$Blog$view = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				$author$project$Navbar$navbar(
+				{direction: $author$project$Navbar$Auto}),
+				A2(
+				$elm$html$Html$main_,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$author$project$Blog$viewContent(model)
+					]))
+			]));
+};
+var $author$project$Navbar$Horizontal = {$: 'Horizontal'};
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $author$project$Home$viewAbout = A2(
 	$elm$html$Html$div,
@@ -11552,7 +11646,14 @@ var $author$project$Home$viewProjects = A2(
 var $author$project$Home$view = function (_v0) {
 	return {
 		body: _List_fromArray(
-			[$author$project$Home$viewHeadings, $author$project$Home$viewProjects, $author$project$Home$viewAbout, $author$project$Home$viewContact]),
+			[
+				$author$project$Home$viewHeadings,
+				$author$project$Navbar$navbar(
+				{direction: $author$project$Navbar$Horizontal}),
+				$author$project$Home$viewProjects,
+				$author$project$Home$viewAbout,
+				$author$project$Home$viewContact
+			]),
 		title: 'Yonatan Reicher | Programing & Computer Science'
 	};
 };
