@@ -14,8 +14,13 @@
         <script src="elm.js"></script>
         <script>
             var app = Elm.Main.init();
-            app.ports.highlightAll.subscribe(function() {
-                window.requestAnimationFrame(hljs.highlightAll);
+            app.ports.highlightAll.subscribe(() => {
+                window.requestAnimationFrame(() => {
+                    hljs.highlightAll();
+                    document.querySelectorAll('pre code').forEach((block) => {
+                        block.innerHTML = block.innerHTML.trim();
+                    });
+                });
             });
         </script>
     </body>
