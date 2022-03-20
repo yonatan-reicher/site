@@ -65,21 +65,21 @@ aside {
     font-weight: 400;
     color: var(--text-saturated);
     text-align: center;
-    animation: name 4s infinite;
+    animation: change_color 4s infinite;
 }
 
-@keyframes name {
+@keyframes change_color {
     0% {
         filter: hue-rotate(0deg);
     }
     25% {
-        filter: hue-rotate(10deg);
+        filter: hue-rotate(7deg);
     }
     50% {
         filter: hue-rotate(0deg);
     }
     75% {
-        filter: hue-rotate(-10deg);
+        filter: hue-rotate(-7deg);
     }
     100% {
         filter: hue-rotate(0deg);
@@ -103,6 +103,7 @@ aside {
     background: var(--text-saturated);
     z-index: -1;
     filter: brightness(0.9);
+    animation: change_color 4s infinite;
 }
 
 .projects {
@@ -114,7 +115,15 @@ aside {
     color: var(--text-secondary);
     margin: 0;
     padding: 0;
-    height: 100vh;
+    min-height: 100vh;
+}
+
+.project-image {
+    display: block;
+    width: 60%;
+    margin: 0 auto;
+    border: 1px solid var(--text-secondary);
+    box-shadow: 0 0 0.2em var(--text-secondary);
 }
 
 .section {

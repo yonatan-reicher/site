@@ -80,30 +80,106 @@ viewProjects =
         , ul
             [ class "projects-list"
             ]
-            [ li
-                [ class "project"
-                ]
-                [ a [ href "#/blog" ] [ text "Articles (work in progress!)" ]
-                ]
-            , li
-                [ class "project"
-                ]
-                [ a
-                    [ href "https://gitlab.com/affogato/affogato"
+            [ viewProject
+                { name = "My Articles"
+                , description =
+                    [ text
+                        """
+                        I always wanted to write dev-blog, so I made one
+                        and hosted it on this site (and it's still in progress).
+                        """
                     ]
-                    [ text "Affogato"
+                , link = "#/blog"
+                , picturePath = Nothing
+                }
+            , viewProject
+                { name = "Affogato"
+                , description =
+                    [ text
+                        """
+                        A simple, yet powerful, machine learning library for
+                        python. Made with love, with my friend, 
+                        """
+                    , a 
+                        [ href "https://github.com/galord123" ]
+                        [ text "Gal"
+                        ]
+                    , text
+                        """
+                        , For the Magshimim project.
+                        """
                     ]
-                ]
-            , li
-                [ class "project"
-                ]
-                [ a
-                    [ href "https://github.com/officeBatman/blobs"
+                , link = "https://gitlab.com/affogato/affogato"
+                , picturePath = Just "images/affogato.png"
+                }
+            , viewProject
+                { name = "AB"
+                , description =
+                    [ text
+                        """
+                        A C-Style language that complies to human-readable
+                        X86 assembly for TASM
+                        """
                     ]
-                    [ text "Blobs - 2d simulation with raylib"
+                , link = "https://github.com/officeBatman/AB"
+                , picturePath = Just "images/ab.png"
+                }
+            , viewProject
+                { name = "Blobs"
+                , description =
+                    [ p []
+                        [ text
+                            """
+                            2d simulation of blob creatures. They have
+                            color-based sight, and can move, eat, and fight.
+                            """
+                        ]
+                    , p []
+                        [ ul []
+                            [ li [] [ text
+                                """
+                                Implemented using Rust and Raylib.
+                                """ ]
+                            , li [] [ text 
+                                """
+                                Collision detection implemented by me with the
+                                sweep and prune algorithm.
+                                """ ]
+                            ]
+                        ]
                     ]
-                ]
+                , link = "https://github.com/officeBatman/blobs"
+                , picturePath = Just "images/blobs.jpg"
+                }
             ]
+        ]
+
+
+viewProject :
+    { name: String, description: List (Html Msg)
+    , link: String, picturePath: Maybe String
+    } -> Html Msg
+viewProject { name, description, link, picturePath } =
+    li
+        [ class "project"
+        ]
+        [ a [ href link ] [ h3 [ class "project-title" ] [ text name ] ]
+        , case picturePath of
+            Just path ->
+                a
+                    [ href link
+                    ]
+                    [ img
+                        [ class "project-image"
+                        , src path
+                        ]
+                        []
+                    ]
+            Nothing -> text ""
+        , p
+            [ class "project-description"
+            ]
+            description
         ]
 
 

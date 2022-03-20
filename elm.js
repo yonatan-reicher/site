@@ -11557,6 +11557,72 @@ var $author$project$Home$viewHeadings = A2(
 					$elm$html$Html$text('.')
 				]))
 		]));
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $author$project$Home$viewProject = function (_v0) {
+	var name = _v0.name;
+	var description = _v0.description;
+	var link = _v0.link;
+	var picturePath = _v0.picturePath;
+	return A2(
+		$elm$html$Html$li,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('project')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$a,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$href(link)
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$h3,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('project-title')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(name)
+							]))
+					])),
+				function () {
+				if (picturePath.$ === 'Just') {
+					var path = picturePath.a;
+					return A2(
+						$elm$html$Html$a,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$href(link)
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$img,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('project-image'),
+										$elm$html$Html$Attributes$src(path)
+									]),
+								_List_Nil)
+							]));
+				} else {
+					return $elm$html$Html$text('');
+				}
+			}(),
+				A2(
+				$elm$html$Html$p,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('project-description')
+					]),
+				description)
+			]));
+};
 var $author$project$Home$viewProjects = A2(
 	$elm$html$Html$div,
 	_List_fromArray(
@@ -11584,63 +11650,89 @@ var $author$project$Home$viewProjects = A2(
 				]),
 			_List_fromArray(
 				[
-					A2(
-					$elm$html$Html$li,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('project')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$a,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$href('#/blog')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Articles (work in progress!)')
-								]))
-						])),
-					A2(
-					$elm$html$Html$li,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('project')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$a,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$href('https://gitlab.com/affogato/affogato')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Affogato')
-								]))
-						])),
-					A2(
-					$elm$html$Html$li,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('project')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$a,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$href('https://github.com/officeBatman/blobs')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Blobs - 2d simulation with raylib')
-								]))
-						]))
+					$author$project$Home$viewProject(
+					{
+						description: _List_fromArray(
+							[
+								$elm$html$Html$text('\r\n                        I always wanted to write dev-blog, so I made one\r\n                        and hosted it on this site (and it\'s still in progress).\r\n                        ')
+							]),
+						link: '#/blog',
+						name: 'My Articles',
+						picturePath: $elm$core$Maybe$Nothing
+					}),
+					$author$project$Home$viewProject(
+					{
+						description: _List_fromArray(
+							[
+								$elm$html$Html$text('\r\n                        A simple, yet powerful, machine learning library for\r\n                        python. Made with love, with my friend, \r\n                        '),
+								A2(
+								$elm$html$Html$a,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$href('https://github.com/galord123')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Gal')
+									])),
+								$elm$html$Html$text('\r\n                        , For the Magshimim project.\r\n                        ')
+							]),
+						link: 'https://gitlab.com/affogato/affogato',
+						name: 'Affogato',
+						picturePath: $elm$core$Maybe$Just('images/affogato.png')
+					}),
+					$author$project$Home$viewProject(
+					{
+						description: _List_fromArray(
+							[
+								$elm$html$Html$text('\r\n                        A C-Style language that complies to human-readable\r\n                        X86 assembly for TASM\r\n                        ')
+							]),
+						link: 'https://github.com/officeBatman/AB',
+						name: 'AB',
+						picturePath: $elm$core$Maybe$Just('images/ab.png')
+					}),
+					$author$project$Home$viewProject(
+					{
+						description: _List_fromArray(
+							[
+								A2(
+								$elm$html$Html$p,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('\r\n                            2d simulation of blob creatures. They have\r\n                            color-based sight, and can move, eat, and fight.\r\n                            ')
+									])),
+								A2(
+								$elm$html$Html$p,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$ul,
+										_List_Nil,
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$li,
+												_List_Nil,
+												_List_fromArray(
+													[
+														$elm$html$Html$text('\r\n                                Implemented using Rust and Raylib.\r\n                                ')
+													])),
+												A2(
+												$elm$html$Html$li,
+												_List_Nil,
+												_List_fromArray(
+													[
+														$elm$html$Html$text('\r\n                                Collision detection implemented by me with the\r\n                                sweep and prune algorithm.\r\n                                ')
+													]))
+											]))
+									]))
+							]),
+						link: 'https://github.com/officeBatman/blobs',
+						name: 'Blobs',
+						picturePath: $elm$core$Maybe$Just('images/blobs.jpg')
+					})
 				]))
 		]));
 var $author$project$Home$view = function (_v0) {
