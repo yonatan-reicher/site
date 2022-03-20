@@ -18,6 +18,13 @@
     background: var(--bg-primary);
 }
 
+/* Scale down for mobile */
+@media only screen and (max-width: 768px) {
+    :root {
+        font-size: 10px;
+    }
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -46,6 +53,8 @@ aside {
     margin: 0;
     padding: 0;
     height: 100vh;
+    width: 90%;
+    margin: 0 auto;
 
     font-size: 1.5em;
     color: var(--text-primary);
@@ -90,6 +99,7 @@ aside {
     display: inline-block;
     position: relative;
     font-weight: bold;
+    white-space: nowrap;
 }
 
 .highlight::before {
@@ -124,6 +134,13 @@ aside {
     margin: 0 auto;
     border: 1px solid var(--text-secondary);
     box-shadow: 0 0 0.2em var(--text-secondary);
+    transition: all 0.2s ease-in-out;
+    order: 10;
+}
+
+.project-image:hover {
+    width: 64%;
+    transform: scale(1.06);
 }
 
 .section {

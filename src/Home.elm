@@ -59,9 +59,8 @@ viewHeadings =
             , span
                 [ class "highlight"
                 ]
-                [ text "software engineer"
+                [ text "software engineer."
                 ]
-            , text "."
             ]
         ]
 
