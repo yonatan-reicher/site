@@ -5485,6 +5485,9 @@ var $author$project$Main$Blog = function (a) {
 var $author$project$Main$BlogMsg = function (a) {
 	return {$: 'BlogMsg', a: a};
 };
+var $author$project$Main$Projects = function (a) {
+	return {$: 'Projects', a: a};
+};
 var $author$project$Blog$Index = function (a) {
 	return {$: 'Index', a: a};
 };
@@ -7189,30 +7192,40 @@ var $author$project$Main$changeRoute = F2(
 		if (route.$ === 'Nothing') {
 			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		} else {
-			if (route.a.$ === 'HomeRoute') {
-				var _v1 = route.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							page: $author$project$Main$Home(_Utils_Tuple0)
-						}),
-					$elm$core$Platform$Cmd$none);
-			} else {
-				var maybeFileName = route.a.a;
-				return A2(
-					$elm$core$Tuple$mapSecond,
-					$elm$core$Platform$Cmd$map($author$project$Main$BlogMsg),
-					A2(
-						$elm$core$Tuple$mapFirst,
-						function (blogModel) {
-							return _Utils_update(
-								model,
-								{
-									page: $author$project$Main$Blog(blogModel)
-								});
-						},
-						$author$project$Blog$init(maybeFileName)));
+			switch (route.a.$) {
+				case 'HomeRoute':
+					var _v1 = route.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								page: $author$project$Main$Home(_Utils_Tuple0)
+							}),
+						$elm$core$Platform$Cmd$none);
+				case 'BlogRoute':
+					var maybeFileName = route.a.a;
+					return A2(
+						$elm$core$Tuple$mapSecond,
+						$elm$core$Platform$Cmd$map($author$project$Main$BlogMsg),
+						A2(
+							$elm$core$Tuple$mapFirst,
+							function (blogModel) {
+								return _Utils_update(
+									model,
+									{
+										page: $author$project$Main$Blog(blogModel)
+									});
+							},
+							$author$project$Blog$init(maybeFileName)));
+				default:
+					var _v2 = route.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								page: $author$project$Main$Projects(_Utils_Tuple0)
+							}),
+						$elm$core$Platform$Cmd$none);
 			}
 		}
 	});
@@ -7339,6 +7352,7 @@ var $author$project$Main$BlogRoute = function (a) {
 	return {$: 'BlogRoute', a: a};
 };
 var $author$project$Main$HomeRoute = {$: 'HomeRoute'};
+var $author$project$Main$ProjectsRoute = {$: 'ProjectsRoute'};
 var $elm$url$Url$Parser$Parser = function (a) {
 	return {$: 'Parser', a: a};
 };
@@ -7500,7 +7514,11 @@ var $author$project$Main$routeParser = $elm$url$Url$Parser$oneOf(
 								$elm$url$Url$Parser$slash,
 								$elm$url$Url$Parser$s('posts'),
 								$elm$url$Url$Parser$string))
-						]))))
+						])))),
+			A2(
+			$elm$url$Url$Parser$map,
+			$author$project$Main$ProjectsRoute,
+			$elm$url$Url$Parser$s('projects'))
 		]));
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
@@ -7536,22 +7554,35 @@ var $author$project$Main$init = F3(
 var $author$project$Main$HomeMsg = function (a) {
 	return {$: 'HomeMsg', a: a};
 };
+var $author$project$Main$ProjectsMsg = function (a) {
+	return {$: 'ProjectsMsg', a: a};
+};
 var $elm$core$Platform$Sub$map = _Platform_map;
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Home$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
+var $author$project$Projects$subscriptions = function (_v0) {
+	return $elm$core$Platform$Sub$none;
+};
 var $author$project$Main$subscriptions = function (model) {
 	var _v0 = model.page;
-	if (_v0.$ === 'Home') {
-		var homeModel = _v0.a;
-		return A2(
-			$elm$core$Platform$Sub$map,
-			$author$project$Main$HomeMsg,
-			$author$project$Home$subscriptions(homeModel));
-	} else {
-		return $elm$core$Platform$Sub$none;
+	switch (_v0.$) {
+		case 'Home':
+			var homeModel = _v0.a;
+			return A2(
+				$elm$core$Platform$Sub$map,
+				$author$project$Main$HomeMsg,
+				$author$project$Home$subscriptions(homeModel));
+		case 'Blog':
+			return $elm$core$Platform$Sub$none;
+		default:
+			var projectsModel = _v0.a;
+			return A2(
+				$elm$core$Platform$Sub$map,
+				$author$project$Main$ProjectsMsg,
+				$author$project$Projects$subscriptions(projectsModel));
 	}
 };
 var $elm$browser$Browser$Navigation$load = _Browser_load;
@@ -10873,6 +10904,10 @@ var $author$project$Home$update = F2(
 	function (_v0, _v1) {
 		return _Utils_Tuple2(_Utils_Tuple0, $elm$core$Platform$Cmd$none);
 	});
+var $author$project$Projects$update = F2(
+	function (_v0, _v1) {
+		return _Utils_Tuple2(_Utils_Tuple0, $elm$core$Platform$Cmd$none);
+	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		var _v0 = _Utils_Tuple2(msg, model.page);
@@ -10917,7 +10952,7 @@ var $author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
-			default:
+			case 'BlogMsg':
 				if (_v0.b.$ === 'Blog') {
 					var blogMsg = _v0.a.a;
 					var blogModel = _v0.b.a;
@@ -10932,6 +10967,24 @@ var $author$project$Main$update = F2(
 						},
 						$elm$core$Platform$Cmd$map($author$project$Main$BlogMsg),
 						A2($author$project$Blog$update, blogMsg, blogModel));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			default:
+				if (_v0.b.$ === 'Projects') {
+					var projectsMsg = _v0.a.a;
+					var projectsModel = _v0.b.a;
+					return A3(
+						$elm$core$Tuple$mapBoth,
+						function (newProjectsModel) {
+							return _Utils_update(
+								model,
+								{
+									page: $author$project$Main$Projects(newProjectsModel)
+								});
+						},
+						$elm$core$Platform$Cmd$map($author$project$Main$ProjectsMsg),
+						A2($author$project$Projects$update, projectsMsg, projectsModel));
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
@@ -11042,8 +11095,8 @@ var $author$project$Navbar$navbar = function (_v0) {
 			_List_fromArray(
 				[
 					{iconPath: 'images/icons/home.svg', link: '#', name: 'Home'},
-					{iconPath: 'images/icons/blog.svg', link: '#/blog', name: 'Articles'},
-					{iconPath: 'images/icons/about.svg', link: '#', name: 'About'},
+					{iconPath: 'images/icons/projects.svg', link: '#/projects', name: 'Projects'},
+					{iconPath: 'images/icons/blog.svg', link: '#/blog', name: 'Blog'},
 					{iconPath: 'images/icons/github.svg', link: 'https://github.com/yonatan-reicher', name: 'Github'}
 				])));
 };
@@ -11453,95 +11506,120 @@ var $author$project$Blog$view = function (model) {
 };
 var $author$project$Navbar$Horizontal = {$: 'Horizontal'};
 var $elm$html$Html$address = _VirtualDom_node('address');
-var $author$project$Home$viewDashboard = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('dashboard')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$h1,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Yonatan Reicher')
-				])),
-			A2(
-			$elm$html$Html$ul,
-			_List_Nil,
-			_List_fromArray(
-				[
+var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
+var $author$project$Home$dashboard = _List_fromArray(
+	[
+		A2(
+		$elm$html$Html$a,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$href('https://www.github.com/yonatan-reicher'),
+				$elm$html$Html$Attributes$target('_blank')
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('Code')
+			])),
+		A2(
+		$elm$html$Html$a,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$href('#/projects'),
+				$elm$html$Html$Attributes$target('_blank')
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('Projects')
+			])),
+		A2(
+		$elm$html$Html$span,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$a,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$href('#/blog'),
+						$elm$html$Html$Attributes$target('_blank')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Blog')
+					])),
+				$elm$html$Html$text(' (Embarassing!)')
+			])),
+		A2(
+		$elm$html$Html$a,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$href('https://twitter.com/batman_office'),
+				$elm$html$Html$Attributes$target('_blank')
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('Art twitter')
+			])),
+		A2(
+		$elm$html$Html$address,
+		_List_Nil,
+		_List_fromArray(
+			[
+				$elm$html$Html$text('email: yony252525@gmail.com')
+			]))
+	]);
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$core$List$singleton = function (value) {
+	return _List_fromArray(
+		[value]);
+};
+var $author$project$Home$viewDashboard = function (items) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('dashboard')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h1,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Yonatan Reicher')
+					])),
+				A2(
+				$elm$html$Html$ul,
+				_List_Nil,
+				A2(
+					$elm$core$List$map,
 					A2(
-					$elm$html$Html$li,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$a,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$href('https://www.github.com/yonatan-reicher')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('code')
-								]))
-						])),
-					A2(
-					$elm$html$Html$li,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$a,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$href('#/blog')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('blog')
-								])),
-							$elm$html$Html$text(' '),
-							$elm$html$Html$text('(Embarassing!)')
-						])),
-					A2(
-					$elm$html$Html$li,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$a,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$href('https://twitter.com/batman_office')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('art twitter')
-								]))
-						])),
-					A2(
-					$elm$html$Html$li,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$address,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('email: yony252525@gmail.com')
-								]))
-						]))
-				]))
-		]));
+						$elm$core$Basics$composeL,
+						$elm$html$Html$li(_List_Nil),
+						$elm$core$List$singleton),
+					items))
+			]));
+};
+var $author$project$Home$view = function (_v0) {
+	return {
+		body: _List_fromArray(
+			[
+				$author$project$Navbar$navbar(
+				{direction: $author$project$Navbar$Horizontal}),
+				$author$project$Home$viewDashboard($author$project$Home$dashboard)
+			]),
+		title: 'Yonatan Reicher'
+	};
+};
 var $elm$html$Html$br = _VirtualDom_node('br');
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
-var $author$project$Home$viewProject = function (_v0) {
+var $author$project$Projects$viewProject = function (_v0) {
 	var name = _v0.name;
 	var description = _v0.description;
 	var link = _v0.link;
@@ -11606,7 +11684,7 @@ var $author$project$Home$viewProject = function (_v0) {
 				description)
 			]));
 };
-var $author$project$Home$viewProjects = A2(
+var $author$project$Projects$viewProjects = A2(
 	$elm$html$Html$div,
 	_List_fromArray(
 		[
@@ -11633,7 +11711,7 @@ var $author$project$Home$viewProjects = A2(
 				]),
 			_List_fromArray(
 				[
-					$author$project$Home$viewProject(
+					$author$project$Projects$viewProject(
 					{
 						description: _List_fromArray(
 							[
@@ -11654,7 +11732,39 @@ var $author$project$Home$viewProjects = A2(
 						name: 'Affogato',
 						picturePath: $elm$core$Maybe$Just('images/affogato.png')
 					}),
-					$author$project$Home$viewProject(
+					$author$project$Projects$viewProject(
+					{
+						description: _List_fromArray(
+							[
+								$elm$html$Html$text('\r\n                        Major redesign for the website of the fauclty of\r\n                        computer science in the Technion. Made with love, in\r\n                        about a weekend. A must for every student in the\r\n                        faculty! (Works on both\r\n                        '),
+								A2(
+								$elm$html$Html$a,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$href('https://chrome.google.com/webstore/detail/gr%20%20-redesign/iaagdkjkkpiiollookginpcjapbhjfli')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Chrome')
+									])),
+								$elm$html$Html$text(' and '),
+								A2(
+								$elm$html$Html$a,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$href('https://addons.mozilla.org/en-US/firefox/addon/gr-redesign/')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Firefox')
+									])),
+								$elm$html$Html$text(').')
+							]),
+						link: 'https://addons.mozilla.org/en-US/firefox/addon/gr-redesign/',
+						name: 'GR++ Redesign',
+						picturePath: $elm$core$Maybe$Just('images/grpp.jpg')
+					}),
+					$author$project$Projects$viewProject(
 					{
 						description: _List_fromArray(
 							[
@@ -11664,7 +11774,7 @@ var $author$project$Home$viewProjects = A2(
 						name: 'AB',
 						picturePath: $elm$core$Maybe$Just('images/ab.png')
 					}),
-					$author$project$Home$viewProject(
+					$author$project$Projects$viewProject(
 					{
 						description: _List_fromArray(
 							[
@@ -11706,7 +11816,7 @@ var $author$project$Home$viewProjects = A2(
 						name: 'Blobs',
 						picturePath: $elm$core$Maybe$Just('images/blobs.jpg')
 					}),
-					$author$project$Home$viewProject(
+					$author$project$Projects$viewProject(
 					{
 						description: _List_fromArray(
 							[
@@ -11721,38 +11831,44 @@ var $author$project$Home$viewProjects = A2(
 					})
 				]))
 		]));
-var $author$project$Home$view = function (_v0) {
+var $author$project$Projects$view = function (_v0) {
 	return {
 		body: _List_fromArray(
 			[
-				$author$project$Home$viewDashboard,
 				$author$project$Navbar$navbar(
 				{direction: $author$project$Navbar$Horizontal}),
-				$author$project$Home$viewProjects
+				$author$project$Projects$viewProjects
 			]),
-		title: 'Yonatan Reicher'
+		title: 'Yonatan Reicher | Projects'
 	};
 };
 var $author$project$Main$view = function (model) {
 	var _v0 = model.page;
-	if (_v0.$ === 'Home') {
-		var homeModel = _v0.a;
-		return A2(
-			$author$project$Main$mapDocument,
-			$author$project$Main$HomeMsg,
-			$author$project$Home$view(homeModel));
-	} else {
-		var blogModel = _v0.a;
-		return {
-			body: _List_fromArray(
-				[
-					A2(
-					$elm$html$Html$map,
-					$author$project$Main$BlogMsg,
-					$author$project$Blog$view(blogModel))
-				]),
-			title: 'Yonatan Reicher | Blog'
-		};
+	switch (_v0.$) {
+		case 'Home':
+			var homeModel = _v0.a;
+			return A2(
+				$author$project$Main$mapDocument,
+				$author$project$Main$HomeMsg,
+				$author$project$Home$view(homeModel));
+		case 'Blog':
+			var blogModel = _v0.a;
+			return {
+				body: _List_fromArray(
+					[
+						A2(
+						$elm$html$Html$map,
+						$author$project$Main$BlogMsg,
+						$author$project$Blog$view(blogModel))
+					]),
+				title: 'Yonatan Reicher | Blog'
+			};
+		default:
+			var projectsModel = _v0.a;
+			return A2(
+				$author$project$Main$mapDocument,
+				$author$project$Main$ProjectsMsg,
+				$author$project$Projects$view(projectsModel));
 	}
 };
 var $author$project$Main$main = $elm$browser$Browser$application(

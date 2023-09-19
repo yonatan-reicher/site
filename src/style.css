@@ -8,6 +8,7 @@
 :root {
     --text-primary: #2c2c2c;
     --text-secondary: #4c4c4c;
+    --text-light: #c2c2c2;
     --bg-primary: #ECECEC;
     --bg-secondary: #F5F5F5;
     --text-saturated: hsl(10, 90%, 60%);
@@ -46,8 +47,7 @@ aside {
 }
 
 .dashboard {
-    height: 100vh;
-    width: calc(max(50%, 300px));
+    width: fit-content;
     margin: 0 auto;
     padding: 0;
 }
@@ -183,7 +183,8 @@ aside {
 .blog pre>code {
     font-size: 1.1em;
     line-height: 1.25;
-    color: var(--text-secondary);
+    color: var(--text-light);
+    border-radius: 4px;
 }
 
 .blog :not(pre)>code {

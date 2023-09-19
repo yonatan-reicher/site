@@ -10,6 +10,7 @@ import Url.Parser exposing ((</>))
 
 import Blog
 import Home
+import Projects
 
 
 type alias Flags = ()
@@ -18,6 +19,7 @@ type alias Flags = ()
 type Page
     = Home Home.Model
     | Blog Blog.Model
+    | Projects Projects.Model
 
 
 type alias Model =
@@ -32,11 +34,13 @@ type Msg
     | LinkClicked Browser.UrlRequest
     | HomeMsg Home.Msg
     | BlogMsg Blog.Msg
+    | ProjectsMsg Projects.Msg
 
 
 type Route
     = HomeRoute
     | BlogRoute (Maybe String)
+    | ProjectsRoute
 
 
 routeParser : Url.Parser.Parser (Route -> a) a
@@ -49,6 +53,7 @@ routeParser =
             , Url.Parser.map Just (Url.Parser.s "posts" </> Url.Parser.string)
             ]
           |> Url.Parser.map BlogRoute
+        , Url.Parser.s "projects" |> Url.Parser.map ProjectsRoute
         ]
 
 
@@ -78,6 +83,12 @@ changeRoute route model =
                 { model | page = Blog blogModel }
             )
             |> Tuple.mapSecond (Cmd.map BlogMsg)
+
+
+        Just ProjectsRoute ->
+            ({ model | page = Projects () }
+            , Cmd.none
+            )
 
 
 main : Program Flags Model Msg
@@ -128,6 +139,14 @@ update msg model =
 
         (BlogMsg _, _) -> (model, Cmd.none)
 
+        (ProjectsMsg projectsMsg, Projects projectsModel) ->
+            Projects.update projectsMsg projectsModel
+            |> Tuple.mapBoth
+                (\newProjectsModel -> { model | page = Projects newProjectsModel })
+                (Cmd.map ProjectsMsg)
+
+        (ProjectsMsg _, _) -> (model, Cmd.none)
+
 view : Model -> Document Msg
 view model =
     case model.page of
@@ -142,6 +161,10 @@ view model =
                   |> Html.map BlogMsg
                 ]
             }
+
+        Projects projectsModel ->
+            Projects.view projectsModel
+            |> mapDocument ProjectsMsg
 
 
 mapDocument : (a -> b) -> Document a -> Document b
@@ -160,4 +183,8 @@ subscriptions model =
 
         Blog _ ->
             Sub.none
+
+        Projects projectsModel ->
+            Projects.subscriptions projectsModel
+            |> Sub.map ProjectsMsg
 
