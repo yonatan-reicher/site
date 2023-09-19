@@ -11452,67 +11452,6 @@ var $author$project$Blog$view = function (model) {
 			]));
 };
 var $author$project$Navbar$Horizontal = {$: 'Horizontal'};
-var $elm$html$Html$p = _VirtualDom_node('p');
-var $author$project$Home$viewAbout = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('section'),
-			$elm$html$Html$Attributes$class('about')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$h2,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('section-title')
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('About')
-				])),
-			A2(
-			$elm$html$Html$p,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('about-text')
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('\r\n                Hi, I\'m Yonatan Reicher.\r\n                I\'m studying to become a software engineer.\r\n                Currently, I am earning credit for a degree in Computer Scienece,\r\n                and in my last year of Magshimim.\r\n                I\'m also 17 years old.\r\n                Right now I am working on a project called affogato\r\n                with my friend Gal.\r\n                I am currently in an application process for the IDF.\r\n                ')
-				]))
-		]));
-var $author$project$Home$viewContact = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('section'),
-			$elm$html$Html$Attributes$class('contact')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$h2,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('section-title')
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Contact')
-				])),
-			A2(
-			$elm$html$Html$p,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('contact-text')
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('\r\n                You can contact me by email at yony252525@gmail.com or by phone\r\n                at 972-58-425-6935.\r\n                ')
-				]))
-		]));
 var $elm$html$Html$address = _VirtualDom_node('address');
 var $author$project$Home$viewDashboard = A2(
 	$elm$html$Html$div,
@@ -11599,6 +11538,8 @@ var $author$project$Home$viewDashboard = A2(
 						]))
 				]))
 		]));
+var $elm$html$Html$br = _VirtualDom_node('br');
+var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $author$project$Home$viewProject = function (_v0) {
 	var name = _v0.name;
@@ -11696,16 +11637,6 @@ var $author$project$Home$viewProjects = A2(
 					{
 						description: _List_fromArray(
 							[
-								$elm$html$Html$text('\r\n                        I always wanted to write dev-blog, so I made one\r\n                        and hosted it on this site (and it\'s still in progress).\r\n                        ')
-							]),
-						link: '#/blog',
-						name: 'My Articles',
-						picturePath: $elm$core$Maybe$Nothing
-					}),
-					$author$project$Home$viewProject(
-					{
-						description: _List_fromArray(
-							[
 								$elm$html$Html$text('\r\n                        A simple, yet powerful, machine learning library for\r\n                        python. Made with love, with my friend, \r\n                        '),
 								A2(
 								$elm$html$Html$a,
@@ -11774,6 +11705,19 @@ var $author$project$Home$viewProjects = A2(
 						link: 'https://github.com/yonatan-reicher/blobs',
 						name: 'Blobs',
 						picturePath: $elm$core$Maybe$Just('images/blobs.jpg')
+					}),
+					$author$project$Home$viewProject(
+					{
+						description: _List_fromArray(
+							[
+								$elm$html$Html$text('\r\n                        Putting stuff on the internet is fun, and also - really\r\n                        embarrassing.\r\n                        '),
+								A2($elm$html$Html$br, _List_Nil, _List_Nil),
+								A2($elm$html$Html$br, _List_Nil, _List_Nil),
+								$elm$html$Html$text('\r\n                        I made this site to put my projects on display, to\r\n                        practice some code, and to get over a fear of putting\r\n                        my work out there.\r\n                        ')
+							]),
+						link: '#',
+						name: 'This Site',
+						picturePath: $elm$core$Maybe$Nothing
 					})
 				]))
 		]));
@@ -11784,9 +11728,7 @@ var $author$project$Home$view = function (_v0) {
 				$author$project$Home$viewDashboard,
 				$author$project$Navbar$navbar(
 				{direction: $author$project$Navbar$Horizontal}),
-				$author$project$Home$viewProjects,
-				$author$project$Home$viewAbout,
-				$author$project$Home$viewContact
+				$author$project$Home$viewProjects
 			]),
 		title: 'Yonatan Reicher'
 	};

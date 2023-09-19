@@ -37,8 +37,6 @@ view () =
         [ viewDashboard
         , navbar { direction = Navbar.Horizontal }
         , viewProjects
-        , viewAbout
-        , viewContact
         ]
     }
 
@@ -108,18 +106,6 @@ viewProjects =
             [ class "projects-list"
             ]
             [ viewProject
-                { name = "My Articles"
-                , description =
-                    [ text
-                        """
-                        I always wanted to write dev-blog, so I made one
-                        and hosted it on this site (and it's still in progress).
-                        """
-                    ]
-                , link = "#/blog"
-                , picturePath = Nothing
-                }
-            , viewProject
                 { name = "Affogato"
                 , description =
                     [ text
@@ -177,6 +163,26 @@ viewProjects =
                     ]
                 , link = "https://github.com/yonatan-reicher/blobs"
                 , picturePath = Just "images/blobs.jpg"
+                }
+            , viewProject
+                { name = "This Site"
+                , description =
+                    [ text
+                        """
+                        Putting stuff on the internet is fun, and also - really
+                        embarrassing.
+                        """
+                    , br [] []
+                    , br [] []
+                    , text
+                        """
+                        I made this site to put my projects on display, to
+                        practice some code, and to get over a fear of putting
+                        my work out there.
+                        """
+                    ]
+                , link = "#"
+                , picturePath = Nothing
                 }
             ]
         ]

@@ -21,7 +21,7 @@
 /* Scale down for mobile */
 @media only screen and (max-width: 768px) {
     :root {
-        font-size: 10px;
+        font-size: 100%;
     }
 }
 
@@ -47,7 +47,7 @@ aside {
 
 .dashboard {
     height: 100vh;
-    width: 50%;
+    width: calc(max(50%, 300px));
     margin: 0 auto;
     padding: 0;
 }
