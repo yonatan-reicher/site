@@ -6,10 +6,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap');
 
 :root {
-    --text-primary: #b6b6b6;
-    --text-secondary: #9c9cac;
-    --bg-primary: #1a1a1a;
-    --bg-secondary: #2d2d2d;
+    --text-primary: #2c2c2c;
+    --text-secondary: #4c4c4c;
+    --bg-primary: #ECECEC;
+    --bg-secondary: #F5F5F5;
     --text-saturated: hsl(10, 90%, 60%);
 
     font-size: 20px;
@@ -43,6 +43,17 @@ aside {
   float: right;
   font-style: italic;
   background-color: var(--bg-secondary);
+}
+
+.dashboard {
+    height: 100vh;
+    width: 50%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.dashboard > ul > li {
+    line-height: 2em;
 }
 
 .headings {
@@ -196,12 +207,13 @@ aside {
 
 :root {
     --navbar-size-when-horizontal: 4rem;
-    --navbar-size-when-vertical: 6rem;
+    --navbar-size-when-vertical: 4rem;
 }
 
 ul.navbar {
     display: flex;
     align-items: center;
+    justify-content: start;
     top: 0;
     margin: 0;
     padding: 0;
@@ -261,8 +273,8 @@ ul.navbar {
 
 .navbar>li {
     display: flex;
-    width: 100%;
-    height: 100%;
+    width: 10%;
+    height: 15%;
 
     transition: filter 0.2s;
     filter: brightness(0.8);
@@ -283,12 +295,12 @@ ul.navbar {
 }
 
 .navbar-icon {
-    width: 2.5rem;
+    width: 1.5rem;
     transition: width 0.2s;
 }
 
 .navbar>li:hover .navbar-icon {
-    width: 4rem;
+    width: 2.5rem;
 }
 
 .navbar-link-text {
@@ -307,4 +319,3 @@ ul.navbar {
     font-size: 1em;
     opacity: 1;
 }
-

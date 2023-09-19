@@ -11044,7 +11044,7 @@ var $author$project$Navbar$navbar = function (_v0) {
 					{iconPath: 'images/icons/home.svg', link: '#', name: 'Home'},
 					{iconPath: 'images/icons/blog.svg', link: '#/blog', name: 'Articles'},
 					{iconPath: 'images/icons/about.svg', link: '#', name: 'About'},
-					{iconPath: 'images/icons/github.svg', link: 'https://github.com/officebatman', name: 'Github'}
+					{iconPath: 'images/icons/github.svg', link: 'https://github.com/yonatan-reicher', name: 'Github'}
 				])));
 };
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
@@ -11513,46 +11513,89 @@ var $author$project$Home$viewContact = A2(
 					$elm$html$Html$text('\r\n                You can contact me by email at yony252525@gmail.com or by phone\r\n                at 972-58-425-6935.\r\n                ')
 				]))
 		]));
-var $elm$html$Html$br = _VirtualDom_node('br');
-var $author$project$Home$viewHeadings = A2(
+var $elm$html$Html$address = _VirtualDom_node('address');
+var $author$project$Home$viewDashboard = A2(
 	$elm$html$Html$div,
 	_List_fromArray(
 		[
-			$elm$html$Html$Attributes$class('headings')
+			$elm$html$Html$Attributes$class('dashboard')
 		]),
 	_List_fromArray(
 		[
 			A2(
 			$elm$html$Html$h1,
+			_List_Nil,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('title')
-				]),
+					$elm$html$Html$text('Yonatan Reicher')
+				])),
+			A2(
+			$elm$html$Html$ul,
+			_List_Nil,
 			_List_fromArray(
 				[
-					$elm$html$Html$text('Hello, I\'m '),
 					A2(
-					$elm$html$Html$span,
+					$elm$html$Html$li,
+					_List_Nil,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('name')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Yonatan')
+							A2(
+							$elm$html$Html$a,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$href('https://www.github.com/yonatan-reicher')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('code')
+								]))
 						])),
-					$elm$html$Html$text('.'),
-					A2($elm$html$Html$br, _List_Nil, _List_Nil),
-					$elm$html$Html$text('And I\'m a '),
 					A2(
-					$elm$html$Html$span,
+					$elm$html$Html$li,
+					_List_Nil,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('highlight')
-						]),
+							A2(
+							$elm$html$Html$a,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$href('#/blog')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('blog')
+								])),
+							$elm$html$Html$text(' '),
+							$elm$html$Html$text('(Embarassing!)')
+						])),
+					A2(
+					$elm$html$Html$li,
+					_List_Nil,
 					_List_fromArray(
 						[
-							$elm$html$Html$text('software engineer.')
+							A2(
+							$elm$html$Html$a,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$href('https://twitter.com/batman_office')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('art twitter')
+								]))
+						])),
+					A2(
+					$elm$html$Html$li,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$address,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text('email: yony252525@gmail.com')
+								]))
 						]))
 				]))
 		]));
@@ -11686,7 +11729,7 @@ var $author$project$Home$viewProjects = A2(
 							[
 								$elm$html$Html$text('\r\n                        A C-Style language that complies to human-readable\r\n                        X86 assembly for TASM\r\n                        ')
 							]),
-						link: 'https://github.com/officeBatman/AB',
+						link: 'https://github.com/yonatan-reicher/AB',
 						name: 'AB',
 						picturePath: $elm$core$Maybe$Just('images/ab.png')
 					}),
@@ -11728,7 +11771,7 @@ var $author$project$Home$viewProjects = A2(
 											]))
 									]))
 							]),
-						link: 'https://github.com/officeBatman/blobs',
+						link: 'https://github.com/yonatan-reicher/blobs',
 						name: 'Blobs',
 						picturePath: $elm$core$Maybe$Just('images/blobs.jpg')
 					})
@@ -11738,14 +11781,14 @@ var $author$project$Home$view = function (_v0) {
 	return {
 		body: _List_fromArray(
 			[
-				$author$project$Home$viewHeadings,
+				$author$project$Home$viewDashboard,
 				$author$project$Navbar$navbar(
 				{direction: $author$project$Navbar$Horizontal}),
 				$author$project$Home$viewProjects,
 				$author$project$Home$viewAbout,
 				$author$project$Home$viewContact
 			]),
-		title: 'Yonatan Reicher | Programing & Computer Science'
+		title: 'Yonatan Reicher'
 	};
 };
 var $author$project$Main$view = function (model) {

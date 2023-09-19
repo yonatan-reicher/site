@@ -32,9 +32,9 @@ update () () =
 
 view : Model -> Document Msg
 view () =
-    { title = "Yonatan Reicher"
+    { title = "Yonatan Reicher | Programing & Computer Science"
     , body =
-        [ viewDashboard
+        [ viewHeadings
         , navbar { direction = Navbar.Horizontal }
         , viewProjects
         , viewAbout
@@ -43,51 +43,23 @@ view () =
     }
 
 
-viewDashboard : Html Msg
-viewDashboard =
+viewHeadings : Html Msg
+viewHeadings =
     div
-        [ class "dashboard"
+        [ class "headings"
         ]
         [ h1
-            [
+            [ class "title"
             ]
-            [ text "Yonatan Reicher"
-            ]
-        , ul
-            [ 
-            ]
-            [ li
-                []
-                [ a
-                    [ href "https://www.github.com/yonatan-reicher"
-                    ]
-                    [ text "code"
-                    ]
+            [ text "Hello, I'm "
+            , span [ class "name" ] [ text "Yonatan" ]
+            , text "."
+            , br [] []
+            , text "And I'm a "
+            , span
+                [ class "highlight"
                 ]
-            , li
-                []
-                [ a
-                    [ href "#/blog"
-                    ]
-                    [ text "blog"
-                    ]
-                , text " "
-                , text "(Embarassing!)"
-                ]
-            , li
-                []
-                [ a
-                    [ href "https://twitter.com/batman_office"
-                    ]
-                    [ text "art twitter"
-                    ]
-                ]
-            , li
-                []
-                [ address
-                    []
-                    [ text "email: yony252525@gmail.com"
-                    ]
+                [ text "software engineer."
                 ]
             ]
         ]
@@ -148,7 +120,7 @@ viewProjects =
                         X86 assembly for TASM
                         """
                     ]
-                , link = "https://github.com/yonatan-reicher/AB"
+                , link = "https://github.com/officeBatman/AB"
                 , picturePath = Just "images/ab.png"
                 }
             , viewProject
@@ -175,7 +147,7 @@ viewProjects =
                             ]
                         ]
                     ]
-                , link = "https://github.com/yonatan-reicher/blobs"
+                , link = "https://github.com/officeBatman/blobs"
                 , picturePath = Just "images/blobs.jpg"
                 }
             ]
