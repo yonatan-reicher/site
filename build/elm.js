@@ -11041,10 +11041,10 @@ var $author$project$Navbar$navbar = function (_v0) {
 			$author$project$Navbar$navbarItem,
 			_List_fromArray(
 				[
-					{iconPath: 'icons/home.svg', link: '#', name: 'Home'},
-					{iconPath: 'icons/blog.svg', link: '#/blog', name: 'Articles'},
-					{iconPath: 'icons/about.svg', link: '#', name: 'About'},
-					{iconPath: 'icons/github.svg', link: 'https://github.com/officebatman', name: 'Github'}
+					{iconPath: 'images/icons/home.svg', link: '#', name: 'Home'},
+					{iconPath: 'images/icons/blog.svg', link: '#/blog', name: 'Articles'},
+					{iconPath: 'images/icons/about.svg', link: '#', name: 'About'},
+					{iconPath: 'images/icons/github.svg', link: 'https://github.com/officebatman', name: 'Github'}
 				])));
 };
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
@@ -11552,9 +11552,8 @@ var $author$project$Home$viewHeadings = A2(
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text('software engineer')
-						])),
-					$elm$html$Html$text('.')
+							$elm$html$Html$text('software engineer.')
+						]))
 				]))
 		]));
 var $elm$html$Html$h3 = _VirtualDom_node('h3');

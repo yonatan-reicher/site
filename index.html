@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- My stylesheet -->
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="src/style.css">
 
         <!-- highlight.js stuff -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/stackoverflow-dark.min.css">
@@ -16,7 +16,7 @@
     </head>
 
     <body>
-        <script src="elm.js"></script>
+        <script src="build/elm.js"></script>
         <script>
             var app = Elm.Main.init();
             app.ports.highlightAll.subscribe(() => {

@@ -20,10 +20,10 @@ navbar { direction } =
                 Vertical -> class "navbar-vertical"
                 Auto -> class "navbar-auto"
         ]
-        ( [ { name = "Home", link = "#", iconPath = "icons/home.svg" }
-          , { name = "Articles", link = "#/blog", iconPath = "icons/blog.svg" }
-          , { name = "About", link = "#", iconPath = "icons/about.svg" }
-          , { name = "Github", link = "https://github.com/officebatman", iconPath = "icons/github.svg" }
+        ( [ { name = "Home", link = "#", iconPath = "images/icons/home.svg" }
+          , { name = "Articles", link = "#/blog", iconPath = "images/icons/blog.svg" }
+          , { name = "About", link = "#", iconPath = "images/icons/about.svg" }
+          , { name = "Github", link = "https://github.com/officebatman", iconPath = "images/icons/github.svg" }
           ]
           |> List.map navbarItem
         )
