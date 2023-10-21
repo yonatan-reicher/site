@@ -11661,7 +11661,8 @@ var $author$project$Projects$viewProject = function (_v0) {
 						$elm$html$Html$a,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$href(link)
+								$elm$html$Html$Attributes$href(link),
+								$elm$html$Html$Attributes$target('blank')
 							]),
 						_List_fromArray(
 							[
@@ -11734,6 +11735,16 @@ var $author$project$Projects$viewProjects = A2(
 						link: 'https://gitlab.com/affogato/affogato',
 						name: 'Affogato',
 						picturePath: $elm$core$Maybe$Just('images/affogato.png')
+					}),
+					$author$project$Projects$viewProject(
+					{
+						description: _List_fromArray(
+							[
+								$elm$html$Html$text('\r\n                        A simple demo implementation of the Wave Function\r\n                        Collapse algorithm to generate an interesting looking\r\n                        town!\r\n                        Made in C# with MonoGame.\r\n                        ')
+							]),
+						link: 'https://github.com/yonatan-reicher/wave-function-collapse/',
+						name: 'Wave Function Collapse',
+						picturePath: $elm$core$Maybe$Just('images/wave-function-collapse.png')
 					}),
 					$author$project$Projects$viewProject(
 					{

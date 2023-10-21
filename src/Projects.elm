@@ -75,6 +75,21 @@ viewProjects =
                 , picturePath = Just "images/affogato.png"
                 }
             , viewProject
+                { name = "Wave Function Collapse"
+                , description =
+                    [ text
+                        """
+                        A simple demo implementation of the Wave Function
+                        Collapse algorithm to generate an interesting looking
+                        town!
+                        Made in C# with MonoGame.
+                        """
+                    ]
+                , link = "https://github.com/yonatan-reicher/wave-function-collapse/"
+                , picturePath = Just "images/wave-function-collapse.png"
+                }
+
+            , viewProject
                 { name = "GR++ Redesign"
                 , description =
                     [ text
@@ -175,6 +190,7 @@ viewProject { name, description, link, picturePath } =
             Just path ->
                 a
                     [ href link
+                    , target "blank"
                     ]
                     [ img
                         [ class "project-image"
