@@ -11006,7 +11006,6 @@ var $author$project$Main$mapDocument = F2(
 	});
 var $author$project$Navbar$Auto = {$: 'Auto'};
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$main_ = _VirtualDom_node('main');
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -11015,6 +11014,8 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			key,
 			$elm$json$Json$Encode$string(string));
 	});
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
+var $elm$html$Html$main_ = _VirtualDom_node('main');
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$Attributes$href = function (url) {
@@ -11364,7 +11365,6 @@ var $author$project$Blog$viewLoadingPost = function (fileName) {
 					]))
 			]));
 };
-var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$Attributes$datetime = _VirtualDom_attribute('datetime');
 var $elm$html$Html$header = _VirtualDom_node('header');
 var $author$project$Blog$posixToMonthString = F2(
@@ -11462,8 +11462,7 @@ var $author$project$Blog$viewPostPage = function (_v0) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('blog'),
-				$elm$html$Html$Attributes$id('blog')
+				$elm$html$Html$Attributes$id('post')
 			]),
 		A2(
 			$elm$core$List$cons,
@@ -11497,7 +11496,10 @@ var $author$project$Blog$view = function (model) {
 				{direction: $author$project$Navbar$Auto}),
 				A2(
 				$elm$html$Html$main_,
-				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$id('blog')
+					]),
 				_List_fromArray(
 					[
 						$author$project$Blog$viewContent(model)
@@ -11616,6 +11618,7 @@ var $author$project$Home$view = function (_v0) {
 		title: 'Yonatan Reicher'
 	};
 };
+var $author$project$Navbar$Vertical = {$: 'Vertical'};
 var $elm$html$Html$br = _VirtualDom_node('br');
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
@@ -11836,7 +11839,7 @@ var $author$project$Projects$view = function (_v0) {
 		body: _List_fromArray(
 			[
 				$author$project$Navbar$navbar(
-				{direction: $author$project$Navbar$Horizontal}),
+				{direction: $author$project$Navbar$Vertical}),
 				$author$project$Projects$viewProjects
 			]),
 		title: 'Yonatan Reicher | Projects'

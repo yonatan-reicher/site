@@ -160,39 +160,44 @@ aside {
     padding: 30 40;
 }
 
-.blog {
+#blog {
     max-width: 800px;
-    margin: auto;
     padding: 30;
     line-height: 1.6;
 }
 
-.blog h1 {
+#blog #post {
+    max-width: 800px;
+    margin: auto;
+    line-height: 1.6;
+}
+
+#blog #post h1 {
     text-align: center;
 }
 
-.blog code {
+#blog #post code {
     font-family: 'JetBrains Mono', monospace;
     color: var(--text-secondary);
 }
 
-.blog pre:has(code:only-child) {
+#blog #post pre:has(code:only-child) {
     display: inline;
 }
 
-.blog pre>code {
+#blog #post pre>code {
     font-size: 1.1em;
     line-height: 1.25;
     color: var(--text-light);
     border-radius: 4px;
 }
 
-.blog :not(pre)>code {
+#blog #post :not(pre)>code {
     margin-left: 5;
     margin-right: 5;
 }
 
-.blog img {
+#blog #post img {
     display: block;
     margin: auto;
     max-width: 100%;

@@ -195,7 +195,7 @@ view : Model -> Html Msg
 view model =
     div []
         [ navbar { direction = Navbar.Auto }
-        , main_ [] [ viewContent model ]
+        , main_ [ id "blog" ] [ viewContent model ]
         ]
 
 
@@ -271,8 +271,7 @@ viewPostPage : { post: Post
            } -> Html Msg
 viewPostPage { post, content } =
     div
-        [ class "blog"
-        , id "blog"
+        [ id "post"
         ]
         (viewPostHeader post :: content)
 
