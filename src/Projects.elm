@@ -73,6 +73,7 @@ viewProjects =
                     ]
                 , link = "https://gitlab.com/affogato/affogato"
                 , picturePath = Just "images/affogato.png"
+                , date = "2022"
                 }
             , viewProject
                 { name = "Wave Function Collapse"
@@ -87,8 +88,17 @@ viewProjects =
                     ]
                 , link = "https://github.com/yonatan-reicher/wave-function-collapse/"
                 , picturePath = Just "images/wave-function-collapse.png"
+                , date = "2023-12-18"
                 }
-
+            , viewProject
+                { name = "Character Controller Test"
+                , description =
+                    [ text "A simple character controller to test out phaser.js"
+                    ]
+                , link = "https://yonatan-reicher.github.io/phaser-character-test/"
+                , picturePath = Just "images/phaser-character-test.png"
+                , date = "2023-10-27"
+                }
             , viewProject
                 { name = "GR++ Redesign"
                 , description =
@@ -113,6 +123,7 @@ viewProjects =
                     ]
                 , link = "https://addons.mozilla.org/en-US/firefox/addon/gr-redesign/"
                 , picturePath = Just "images/grpp.jpg"
+                , date = "2023-02-24"
                 }
             , viewProject
                 { name = "AB"
@@ -125,6 +136,7 @@ viewProjects =
                     ]
                 , link = "https://github.com/yonatan-reicher/AB"
                 , picturePath = Just "images/ab.png"
+                , date = "2019"
                 }
             , viewProject
                 { name = "Blobs"
@@ -152,6 +164,7 @@ viewProjects =
                     ]
                 , link = "https://github.com/yonatan-reicher/blobs"
                 , picturePath = Just "images/blobs.jpg"
+                , date = "2021-01-18"
                 }
             , viewProject
                 { name = "This Site"
@@ -172,6 +185,7 @@ viewProjects =
                     ]
                 , link = "#"
                 , picturePath = Nothing
+                , date = "2022-01-28"
                 }
             ]
         ]
@@ -180,12 +194,15 @@ viewProjects =
 viewProject :
     { name: String, description: List (Html Msg)
     , link: String, picturePath: Maybe String
+    , date: String
     } -> Html Msg
-viewProject { name, description, link, picturePath } =
+viewProject { name, description, link, picturePath, date } =
     li
         [ class "project"
         ]
-        [ a [ href link ] [ h3 [ class "project-title" ] [ text name ] ]
+        [ a [ href link ]
+            [ h3 [ class "project-title" ] [ text name ]
+            ]
         , case picturePath of
             Just path ->
                 a
@@ -203,6 +220,11 @@ viewProject { name, description, link, picturePath } =
             [ class "project-description"
             ]
             description
+        , p
+            [ class "project-date"
+            ]
+            [ text date
+            ]
         ]
 
 

@@ -11627,6 +11627,7 @@ var $author$project$Projects$viewProject = function (_v0) {
 	var description = _v0.description;
 	var link = _v0.link;
 	var picturePath = _v0.picturePath;
+	var date = _v0.date;
 	return A2(
 		$elm$html$Html$li,
 		_List_fromArray(
@@ -11685,7 +11686,17 @@ var $author$project$Projects$viewProject = function (_v0) {
 					[
 						$elm$html$Html$Attributes$class('project-description')
 					]),
-				description)
+				description),
+				A2(
+				$elm$html$Html$p,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('project-date')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(date)
+					]))
 			]));
 };
 var $author$project$Projects$viewProjects = A2(
@@ -11717,6 +11728,7 @@ var $author$project$Projects$viewProjects = A2(
 				[
 					$author$project$Projects$viewProject(
 					{
+						date: '2022',
 						description: _List_fromArray(
 							[
 								$elm$html$Html$text('\r\n                        A simple, yet powerful, machine learning library for\r\n                        python. Made with love, with my friend, \r\n                        '),
@@ -11738,6 +11750,7 @@ var $author$project$Projects$viewProjects = A2(
 					}),
 					$author$project$Projects$viewProject(
 					{
+						date: '2023-12-18',
 						description: _List_fromArray(
 							[
 								$elm$html$Html$text('\r\n                        A simple demo implementation of the Wave Function\r\n                        Collapse algorithm to generate an interesting looking\r\n                        town!\r\n                        Made in C# with MonoGame.\r\n                        ')
@@ -11748,6 +11761,18 @@ var $author$project$Projects$viewProjects = A2(
 					}),
 					$author$project$Projects$viewProject(
 					{
+						date: '2023-10-27',
+						description: _List_fromArray(
+							[
+								$elm$html$Html$text('A simple character controller to test out phaser.js')
+							]),
+						link: 'https://yonatan-reicher.github.io/phaser-character-test/',
+						name: 'Character Controller Test',
+						picturePath: $elm$core$Maybe$Just('images/phaser-character-test.png')
+					}),
+					$author$project$Projects$viewProject(
+					{
+						date: '2023-02-24',
 						description: _List_fromArray(
 							[
 								$elm$html$Html$text('\r\n                        Major redesign for the website of the fauclty of\r\n                        computer science in the Technion. Made with love, in\r\n                        about a weekend. A must for every student in the\r\n                        faculty! (Works on both\r\n                        '),
@@ -11780,6 +11805,7 @@ var $author$project$Projects$viewProjects = A2(
 					}),
 					$author$project$Projects$viewProject(
 					{
+						date: '2019',
 						description: _List_fromArray(
 							[
 								$elm$html$Html$text('\r\n                        A C-Style language that complies to human-readable\r\n                        X86 assembly for TASM\r\n                        ')
@@ -11790,6 +11816,7 @@ var $author$project$Projects$viewProjects = A2(
 					}),
 					$author$project$Projects$viewProject(
 					{
+						date: '2021-01-18',
 						description: _List_fromArray(
 							[
 								A2(
@@ -11832,6 +11859,7 @@ var $author$project$Projects$viewProjects = A2(
 					}),
 					$author$project$Projects$viewProject(
 					{
+						date: '2022-01-28',
 						description: _List_fromArray(
 							[
 								$elm$html$Html$text('\r\n                        Putting stuff on the internet is fun, and also - really\r\n                        embarrassing.\r\n                        '),
