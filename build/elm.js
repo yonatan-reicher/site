@@ -11017,6 +11017,17 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$main_ = _VirtualDom_node('main');
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $author$project$Navbar$container = F2(
+	function (nav, onTopOf) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('navbar-container')
+				]),
+			_List_fromArray(
+				[nav, onTopOf]));
+	});
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
@@ -11072,8 +11083,7 @@ var $author$project$Navbar$navbarItem = function (_v0) {
 			]));
 };
 var $elm$html$Html$ul = _VirtualDom_node('ul');
-var $author$project$Navbar$navbar = function (_v0) {
-	var direction = _v0.direction;
+var $author$project$Navbar$navbarElement = function (direction) {
 	return A2(
 		$elm$html$Html$ul,
 		_List_fromArray(
@@ -11101,7 +11111,20 @@ var $author$project$Navbar$navbar = function (_v0) {
 					{iconPath: 'images/icons/github.svg', link: 'https://github.com/yonatan-reicher', name: 'Github'}
 				])));
 };
+var $author$project$Navbar$navbar = function (_v0) {
+	var direction = _v0.direction;
+	var onTopOf = _v0.onTopOf;
+	return A2(
+		$author$project$Navbar$container,
+		$author$project$Navbar$navbarElement(direction),
+		onTopOf);
+};
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$core$List$sortBy = _List_sortBy;
 var $elm$time$Time$Apr = {$: 'Apr'};
 var $elm$time$Time$Aug = {$: 'Aug'};
 var $elm$time$Time$Dec = {$: 'Dec'};
@@ -11118,10 +11141,6 @@ var $elm$time$Time$flooredDiv = F2(
 	function (numerator, denominator) {
 		return $elm$core$Basics$floor(numerator / denominator);
 	});
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
 var $elm$time$Time$toAdjustedMinutesHelp = F3(
 	function (defaultOffset, posixMinutes, eras) {
 		toAdjustedMinutesHelp:
@@ -11296,7 +11315,19 @@ var $author$project$Blog$viewIndexPosts = function (posts) {
 	return A2(
 		$elm$html$Html$ul,
 		_List_Nil,
-		A2($elm$core$List$map, $author$project$Blog$viewIndexPost, posts));
+		A2(
+			$elm$core$List$map,
+			$author$project$Blog$viewIndexPost,
+			$elm$core$List$reverse(
+				A2(
+					$elm$core$List$sortBy,
+					A2(
+						$elm$core$Basics$composeR,
+						function ($) {
+							return $.date;
+						},
+						$elm$time$Time$posixToMillis),
+					posts))));
 };
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $author$project$Blog$viewLoading = A2(
@@ -11365,8 +11396,29 @@ var $author$project$Blog$viewLoadingPost = function (fileName) {
 					]))
 			]));
 };
+var $elm$html$Html$footer = _VirtualDom_node('footer');
+var $author$project$Blog$viewPostFooter = function (post) {
+	return A2(
+		$elm$html$Html$footer,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$a,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$href('#/blog'),
+						$elm$html$Html$Attributes$class('back')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Back to blog')
+					]))
+			]));
+};
 var $elm$html$Html$Attributes$datetime = _VirtualDom_attribute('datetime');
 var $elm$html$Html$header = _VirtualDom_node('header');
+var $elm$html$Html$p = _VirtualDom_node('p');
 var $author$project$Blog$posixToMonthString = F2(
 	function (zone, posix) {
 		var _v0 = A2($elm$time$Time$toMonth, zone, posix);
@@ -11414,44 +11466,48 @@ var $author$project$Blog$viewPostHeader = function (post) {
 		_List_fromArray(
 			[
 				A2(
-				$elm$html$Html$a,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$href('#/blog/posts/' + post.fileName)
-					]),
+				$elm$html$Html$h1,
+				_List_Nil,
 				_List_fromArray(
 					[
 						A2(
-						$elm$html$Html$h1,
-						_List_Nil,
+						$elm$html$Html$a,
 						_List_fromArray(
 							[
-								$elm$html$Html$text(post.title)
+								$elm$html$Html$Attributes$href('#/blog/posts/' + post.fileName)
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$span,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(post.title)
+									]))
 							]))
 					])),
 				A2(
-				$elm$html$Html$a,
+				$elm$html$Html$p,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$href('#/blog'),
-						$elm$html$Html$Attributes$class('back')
+						$elm$html$Html$Attributes$class('subtitle')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Back to blog')
-					])),
-				$elm$html$Html$text(' - '),
-				A2(
-				$elm$html$Html$time,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$datetime(
-						$author$project$Blog$posixToYearMonthDay(post.date))
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(
-						A2($author$project$Blog$posixToMonthNameDayYear, $elm$time$Time$utc, post.date))
+						$elm$html$Html$text('Posted on '),
+						A2(
+						$elm$html$Html$time,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$datetime(
+								$author$project$Blog$posixToYearMonthDay(post.date))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								A2($author$project$Blog$posixToMonthNameDayYear, $elm$time$Time$utc, post.date))
+							]))
 					]))
 			]));
 };
@@ -11467,7 +11523,12 @@ var $author$project$Blog$viewPostPage = function (_v0) {
 		A2(
 			$elm$core$List$cons,
 			$author$project$Blog$viewPostHeader(post),
-			content));
+			_Utils_ap(
+				content,
+				_List_fromArray(
+					[
+						$author$project$Blog$viewPostFooter(post)
+					]))));
 };
 var $author$project$Blog$viewContent = function (model) {
 	switch (model.$) {
@@ -11493,83 +11554,107 @@ var $author$project$Blog$view = function (model) {
 		_List_fromArray(
 			[
 				$author$project$Navbar$navbar(
-				{direction: $author$project$Navbar$Auto}),
-				A2(
-				$elm$html$Html$main_,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$id('blog')
-					]),
-				_List_fromArray(
-					[
-						$author$project$Blog$viewContent(model)
-					]))
+				{
+					direction: $author$project$Navbar$Auto,
+					onTopOf: A2(
+						$elm$html$Html$main_,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('blog')
+							]),
+						_List_fromArray(
+							[
+								$author$project$Blog$viewContent(model)
+							]))
+				})
 			]));
 };
-var $author$project$Navbar$Horizontal = {$: 'Horizontal'};
+var $author$project$Navbar$Vertical = {$: 'Vertical'};
 var $elm$html$Html$address = _VirtualDom_node('address');
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
-var $author$project$Home$dashboard = _List_fromArray(
-	[
-		A2(
-		$elm$html$Html$a,
+var $author$project$Home$dashboard = function () {
+	var bold = $elm$html$Html$span(
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$href('https://www.github.com/yonatan-reicher'),
-				$elm$html$Html$Attributes$target('_blank')
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text('Code')
-			])),
-		A2(
-		$elm$html$Html$a,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$href('#/projects'),
-				$elm$html$Html$Attributes$target('_blank')
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text('Projects')
-			])),
-		A2(
-		$elm$html$Html$span,
-		_List_Nil,
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$a,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$href('#/blog'),
-						$elm$html$Html$Attributes$target('_blank')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Blog')
-					])),
-				$elm$html$Html$text(' (Embarassing!)')
-			])),
-		A2(
-		$elm$html$Html$a,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$href('https://twitter.com/batman_office'),
-				$elm$html$Html$Attributes$target('_blank')
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text('Art twitter')
-			])),
-		A2(
-		$elm$html$Html$address,
-		_List_Nil,
-		_List_fromArray(
-			[
-				$elm$html$Html$text('email: yony252525@gmail.com')
-			]))
-	]);
+				A2($elm$html$Html$Attributes$style, 'font-weight', 'bold')
+			]));
+	return _List_fromArray(
+		[
+			A2(
+			$elm$html$Html$span,
+			_List_Nil,
+			_List_fromArray(
+				[
+					bold(
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Most')
+						])),
+					$elm$html$Html$text(' of my code is on '),
+					A2(
+					$elm$html$Html$a,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$href('https://www.github.com/yonatan-reicher'),
+							$elm$html$Html$Attributes$target('_blank')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('github')
+						])),
+					$elm$html$Html$text('.')
+				])),
+			A2(
+			$elm$html$Html$span,
+			_List_Nil,
+			_List_fromArray(
+				[
+					bold(
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Sometimes')
+						])),
+					$elm$html$Html$text(' I upload art to '),
+					A2(
+					$elm$html$Html$a,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$href('https://twitter.com/batman_office'),
+							$elm$html$Html$Attributes$target('_blank')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('twitter')
+						])),
+					$elm$html$Html$text('.')
+				])),
+			A2(
+			$elm$html$Html$span,
+			_List_Nil,
+			_List_fromArray(
+				[
+					bold(
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Contact')
+						])),
+					$elm$html$Html$text(' me at '),
+					A2(
+					$elm$html$Html$address,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'display', 'inline')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('yony252525@gmail.com')
+						])),
+					$elm$html$Html$text('.')
+				]))
+		]);
+}();
 var $elm$core$Basics$composeL = F3(
 	function (g, f, x) {
 		return g(
@@ -11581,46 +11666,71 @@ var $elm$core$List$singleton = function (value) {
 };
 var $author$project$Home$viewDashboard = function (items) {
 	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('dashboard')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$h1,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Yonatan Reicher')
-					])),
-				A2(
-				$elm$html$Html$ul,
-				_List_Nil,
-				A2(
-					$elm$core$List$map,
-					A2(
-						$elm$core$Basics$composeL,
-						$elm$html$Html$li(_List_Nil),
-						$elm$core$List$singleton),
-					items))
-			]));
+		$elm$html$Html$ul,
+		_List_Nil,
+		A2(
+			$elm$core$List$map,
+			A2(
+				$elm$core$Basics$composeL,
+				$elm$html$Html$li(_List_Nil),
+				$elm$core$List$singleton),
+			items));
 };
+var $author$project$Home$mainContent = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			$elm$html$Html$Attributes$class('dashboard')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$html$Html$h1,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Yonatan Reicher')
+				])),
+			A2(
+			$elm$html$Html$img,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('me-img'),
+					$elm$html$Html$Attributes$src('images/me.png')
+				]),
+			_List_Nil),
+			A2(
+			$elm$html$Html$p,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$text('\r\n            Hello! I\'m Yonatan Reicher, and this is my site. I make compilers,\r\n            software and sometimes art.\r\n            ')
+				])),
+			$author$project$Home$viewDashboard($author$project$Home$dashboard),
+			A2(
+			$elm$html$Html$span,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'position', 'fixed'),
+					A2($elm$html$Html$Attributes$style, 'bottom', '10'),
+					A2($elm$html$Html$Attributes$style, 'max-width', 'inherit')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('\r\n                Please notice this site is old. Most projects and information\r\n                listed here are not up to date.\r\n                ')
+				]))
+		]));
 var $author$project$Home$view = function (_v0) {
 	return {
 		body: _List_fromArray(
 			[
 				$author$project$Navbar$navbar(
-				{direction: $author$project$Navbar$Horizontal}),
-				$author$project$Home$viewDashboard($author$project$Home$dashboard)
+				{direction: $author$project$Navbar$Vertical, onTopOf: $author$project$Home$mainContent})
 			]),
-		title: 'Yonatan Reicher'
+		title: 'Yonatan Reicher 🎓'
 	};
 };
-var $author$project$Navbar$Vertical = {$: 'Vertical'};
 var $elm$html$Html$br = _VirtualDom_node('br');
-var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $author$project$Projects$viewProject = function (_v0) {
 	var name = _v0.name;
@@ -11878,8 +11988,7 @@ var $author$project$Projects$view = function (_v0) {
 		body: _List_fromArray(
 			[
 				$author$project$Navbar$navbar(
-				{direction: $author$project$Navbar$Vertical}),
-				$author$project$Projects$viewProjects
+				{direction: $author$project$Navbar$Vertical, onTopOf: $author$project$Projects$viewProjects})
 			]),
 		title: 'Yonatan Reicher | Projects'
 	};
