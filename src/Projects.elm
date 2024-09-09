@@ -34,8 +34,10 @@ view : Model -> Document Msg
 view () =
     { title = "Yonatan Reicher | Projects"
     , body =
-        [ navbar { direction = Navbar.Vertical }
-        , viewProjects
+        [ navbar
+            { direction = Navbar.Vertical
+            , onTopOf = viewProjects
+            }
         ]
     }
 

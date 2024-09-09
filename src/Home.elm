@@ -32,41 +32,70 @@ update () () =
 
 view : Model -> Document Msg
 view () =
-    { title = "Yonatan Reicher"
+    { title = "Yonatan Reicher 🎓"
     , body =
-        [ navbar { direction = Navbar.Horizontal }
-        , viewDashboard dashboard
+        [ navbar
+            { direction = Navbar.Vertical 
+            -- TODO: Change to mainContent
+            , onTopOf = mainContent
+            }
         ]
     }
 
 
+mainContent : Html Msg
+mainContent =
+    div [ class "dashboard" ]
+        [ h1 [] [ text "Yonatan Reicher" ]
+        , img [ class "me-img", src "images/me.png" ] []
+        , p [] [ text """
+            Hello! I'm Yonatan Reicher, and this is my site. I make compilers,
+            software and sometimes art.
+            """ ]
+        , viewDashboard dashboard
+        , span
+            [ style "position" "fixed"
+            , style "bottom" "10"
+            , style "max-width" "inherit"
+            ]
+            [ text """
+                Please notice this site is old. Most projects and information
+                listed here are not up to date.
+                """
+            ]
+        ]
+                    
+
+
 dashboard : List (Html Msg)
 dashboard =
-    [ a [ href "https://www.github.com/yonatan-reicher", target "_blank" ]
-        [ text "Code" ]
-    , a [ href "#/projects", target "_blank" ]
-        [ text "Projects" ]
-    , span []
-        [ a [ href "#/blog", target "_blank" ]
-            [ text "Blog" ]
-        , text " (Embarassing!)"
+    let bold = span [ style "font-weight" "bold" ] in
+    [ span []
+        [ bold [ text "Most" ]
+        , text " of my code is on "
+        , a [ href "https://www.github.com/yonatan-reicher", target "_blank" ]
+            [ text "github" ]
+        , text "."
         ]
-    , a [ href "https://twitter.com/batman_office", target "_blank" ]
-        [ text "Art twitter" ]
-    , address [] [ text "email: yony252525@gmail.com" ]
+    , span []
+        [ bold [ text "Sometimes" ]
+        , text " I upload art to "
+        , a [ href "https://twitter.com/batman_office", target "_blank" ]
+            [ text "twitter" ]
+        , text "."
+        ]
+    , span []
+        [ bold [ text "Contact" ]
+        , text " me at "
+        , address [ style "display" "inline" ] [ text "yony252525@gmail.com" ]
+        , text "."
+        ]
     ]
 
 
 viewDashboard : List (Html Msg) -> Html Msg
 viewDashboard items =
-    div [ class "dashboard" ]
-        [ h1
-            [
-            ]
-            [ text "Yonatan Reicher"
-            ]
-        , ul [] (List.map (li [] << List.singleton) items)
-        ]
+    ul [] (List.map (li [] << List.singleton) items)
 
 
 subscriptions : Model -> Sub Msg

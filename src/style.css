@@ -14,7 +14,8 @@
     --text-saturated: hsl(10, 90%, 60%);
 
     font-size: 20px;
-    font-family: 'Raleway', sans-serif;
+    /* font-family: 'Raleway', sans-serif; */
+    font-family: consolas, sans-serif;
     color: var(--text-primary);
     background: var(--bg-primary);
 }
@@ -48,12 +49,28 @@ aside {
 
 .dashboard {
     width: fit-content;
+    max-width: 500px;
     margin: 0 auto;
     padding: 0;
 }
 
+.dashboard > h1 {
+    text-align: center;
+}
+
+.dashboard > ul {
+    padding-inline-start: 30px;
+}
+
 .dashboard > ul > li {
     line-height: 2em;
+    list-style: "— ";
+}
+
+.dashboard .me-img {
+    position: absolute;
+    width: 200px;
+    transform: translate(500px, -50px);
 }
 
 .headings {
@@ -132,7 +149,7 @@ aside {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    font-size: 1.5em;
+    font-size: 1.25em;
     color: var(--text-secondary);
     margin: 0;
     padding: 0;
@@ -174,6 +191,10 @@ aside {
 
 #blog #post h1 {
     text-align: center;
+}
+
+#blog #post h1 a span {
+    color: var(--text-primary);
 }
 
 #blog #post code {
@@ -249,20 +270,16 @@ ul.navbar {
 
 .navbar.navbar-vertical {
     flex-direction: column;
-    position: fixed;
+    position: sticky;
     height: 100vh;
     --navbar-size: var(--navbar-size-when-vertical);
-}
-
-.navbar.navbar-vertical ~ * {
-    margin-left: var(--navbar-size-when-vertical);
 }
 
 /* Automatically choose vertical navbar */
 @media only screen and (min-width: 768px) {
     .navbar.navbar-auto {
         flex-direction: column;
-        position: fixed;
+        position: sticky;
         height: 100vh;
         --navbar-size: var(--navbar-size-when-vertical);
     }
@@ -274,7 +291,7 @@ ul.navbar {
 
 .navbar:hover {
     --navbar-size-when-horizontal: 6rem;
-    --navbar-size-when-vertical: 8rem;
+    --navbar-size-when-vertical: 4rem;
 }
 
 .navbar>li {
@@ -324,4 +341,21 @@ ul.navbar {
 .navbar>li:hover .navbar-link-text {
     font-size: 1em;
     opacity: 1;
+}
+
+.navbar-container {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    justify-content: start;
+}
+
+*:has( + .subtitle) {
+    margin-bottom: 0;
+}
+
+.subtitle {
+    opacity: 0.5;
+    text-align: center;
+    margin-top: 0;
 }

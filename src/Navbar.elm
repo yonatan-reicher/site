@@ -11,8 +11,23 @@ type NavbarDir
     | Auto
 
 
-navbar : { direction: NavbarDir } -> Html msg
-navbar { direction } =
+navbar : { direction: NavbarDir, onTopOf: Html msg } -> Html msg
+navbar { direction, onTopOf } =
+    container (navbarElement direction) onTopOf
+
+
+container : Html msg -> Html msg -> Html msg
+container nav onTopOf =
+    div
+        [ class "navbar-container"
+        ]
+        [ nav
+        , onTopOf
+        ]
+
+
+navbarElement : NavbarDir -> Html msg
+navbarElement direction =
     ul
         [ class "navbar"
         , case direction of

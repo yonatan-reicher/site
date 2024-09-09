@@ -194,8 +194,10 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ navbar { direction = Navbar.Auto }
-        , main_ [ id "blog" ] [ viewContent model ]
+        [ navbar
+            { direction = Navbar.Auto
+            , onTopOf = main_ [ id "blog" ] [ viewContent model ]
+            }
         ]
 
 
@@ -250,7 +252,11 @@ viewLoadingPost fileName =
 viewIndexPosts : List Post -> Html Msg
 viewIndexPosts posts =
     ul []
-        (List.map viewIndexPost posts)
+        ( posts
+        |> List.sortBy (.date >> Time.posixToMillis)
+        |> List.reverse
+        |> List.map viewIndexPost
+        )
 
 
 viewIndexPost : Post -> Html Msg
@@ -273,28 +279,39 @@ viewPostPage { post, content } =
     div
         [ id "post"
         ]
-        (viewPostHeader post :: content)
+        (viewPostHeader post :: content ++ [viewPostFooter post])
 
 
 viewPostHeader : Post -> Html Msg
 viewPostHeader post =
     header []
+        [ h1 []
+            [ a 
+                [ href ("#/blog/posts/" ++ post.fileName)
+                ]
+                [ span [] [ text (post.title) ] ]
+            ]
+        , p 
+            [ class "subtitle"
+            ]
+            [ text "Posted on "
+            , time
+                [ datetime (posixToYearMonthDay post.date)
+                ]
+                [ text (posixToMonthNameDayYear Time.utc post.date)
+                ]
+            ]
+        ]
+
+
+viewPostFooter : Post -> Html Msg
+viewPostFooter post =
+    footer []
         [ a
-            [ href ("#/blog/posts/" ++ post.fileName)
-            ]
-            [ h1 [] [ text (post.title) ]
-            ]
-        , a
             [ href "#/blog"
             , class "back"
             ]
             [ text "Back to blog"
-            ]
-        , text " - "
-        , time
-            [ datetime (posixToYearMonthDay post.date)
-            ]
-            [ text (posixToMonthNameDayYear Time.utc post.date)
             ]
         ]
 
