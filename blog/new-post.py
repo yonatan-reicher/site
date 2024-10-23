@@ -53,9 +53,12 @@ def create_new_post_file(file_path):
     with open(file_path, "w") as _:
         pass
 
+def str_to_filename(s: str) -> str:
+    return ''.join(c if c.isalnum() else '-' for c in s).lower()
+
 def main():
     title = parse_args()
-    file_name = title.replace(" ", "-").lower()
+    file_name = str_to_filename(title)
     file_path = os.path.join(POSTS_DIR, file_name)
 
     if os.path.exists(file_path):
