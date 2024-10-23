@@ -2,18 +2,21 @@
 This script takes a title as a cli argument, and creates a new markdown file in the posts directory with the title as the file name, and adds it to posts.json.
 """
 
+import datetime
+import json
+import os
+import sys
+
+
 JSON_FILE_PATH = "posts.json"
 POSTS_DIR = "posts"
 
-import sys
-import os
-import json
-import datetime
 
 def error(msg):
     """Prints an error message and exits the program"""
     print(msg, file=sys.stderr)
     sys.exit(1)
+
 
 def parse_args():
     """Parses the command line arguments and returns the title"""
@@ -24,14 +27,16 @@ Usage:
         """.strip())
     return sys.argv[1]
 
+
 def generate_json_obj(title, file_name):
     now = datetime.datetime.now()
     obj = {
         "title": title,
         "date": now.strftime("%Y-%m-%d"),
-        "fileName": file_name
+        "fileName": file_name,
     }
     return obj
+
 
 def add_to_posts_json(obj):
     lines_to_add = json.dumps(obj, indent=4).splitlines()
@@ -44,17 +49,21 @@ def add_to_posts_json(obj):
 
     with open(JSON_FILE_PATH, "r+") as file:
         lines = file.readlines()
+        # Place the lines to add directly after the first line.
         lines = lines[:1] + lines_to_add + lines[1:]
         file.seek(0)
         file.writelines(lines)
+
 
 def create_new_post_file(file_path):
     # For now just create an empty file
     with open(file_path, "w") as _:
         pass
 
+
 def str_to_filename(s: str) -> str:
-    return ''.join(c if c.isalnum() else '-' for c in s).lower()
+    return ''.join(c if c.isalnum() else '-' for c in s).lower() + ".html"
+
 
 def main():
     title = parse_args()
@@ -68,6 +77,7 @@ def main():
     add_to_posts_json(json_obj)
     create_new_post_file(file_path)
     print(f"Added new post to {JSON_FILE_PATH} at path {file_path}")
+
 
 if __name__ == "__main__":
     main()
