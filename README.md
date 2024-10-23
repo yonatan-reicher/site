@@ -18,5 +18,16 @@ Now navigate to `localhost:8000` in your browser and you should see the site!
 
 For building you need Elm 0.19. Just run `make` and the site will be ready.
 
+## Adding a Blog Post
 
+Blogs are html documents in the `blog/posts/` directory. Every post must be
+listed in the `blog/posts.json` file.
+
+To add a new post, **use the `new-post.py` script**. Run it from the `blog/`
+directory.
+
+```bash
+cd blog/
+python new-post.py ...
+```
 
