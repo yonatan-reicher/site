@@ -4,6 +4,8 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 /* Zilla Slab font */
 @import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap');
+/* My own CSS */
+@import 'navbar.css';
 
 :root {
     --text-primary: #2c2c2c;
@@ -181,6 +183,7 @@ aside {
     max-width: 800px;
     padding: 30;
     line-height: 1.6;
+    margin: auto;
 }
 
 #blog #post {
@@ -223,131 +226,6 @@ aside {
     margin: auto;
     max-width: 100%;
     height: auto;
-}
-
-
-/* A `.navbar` is an unordered list of `.navbar-item`s.
- * A `.navbar may have an `.navbar-horizontal` or `.navbar-vertical`
- * to force itself to one direction,
- * or it may have `.navbar-auto` to allow it to align automatically.
- */
-
-:root {
-    --navbar-size-when-horizontal: 4rem;
-    --navbar-size-when-vertical: 4rem;
-}
-
-ul.navbar {
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    top: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    width: var(--navbar-size-when-vertical);
-    height: var(--navbar-size-when-horizontal);
-    background: var(--bg-secondary);
-    transition: 0.2s ease-out;
-}
-
-.navbar.navbar-horizontal {
-    flex-direction: row;
-    position: sticky;
-    width: 100%;
-    --navbar-size: var(--navbar-size-when-horizontal);
-}
-
-/* Automatically choose horizontal navbar */
-@media only screen and (max-width: 768px) {
-    .navbar.navbar-auto {
-        flex-direction: row;
-        position: sticky;
-        width: 100%;
-        --navbar-size: var(--navbar-size-when-horizontal);
-    }
-}
-
-.navbar.navbar-vertical {
-    flex-direction: column;
-    position: sticky;
-    height: 100vh;
-    --navbar-size: var(--navbar-size-when-vertical);
-}
-
-/* Automatically choose vertical navbar */
-@media only screen and (min-width: 768px) {
-    .navbar.navbar-auto {
-        flex-direction: column;
-        position: sticky;
-        height: 100vh;
-        --navbar-size: var(--navbar-size-when-vertical);
-    }
-
-    .navbar.navbar-auto ~ * {
-        margin-left: var(--navbar-size-when-vertical);
-    }
-}
-
-.navbar:hover {
-    --navbar-size-when-horizontal: 6rem;
-    --navbar-size-when-vertical: 4rem;
-}
-
-.navbar>li {
-    display: flex;
-    width: 10%;
-    height: 15%;
-
-    transition: filter 0.2s;
-    filter: brightness(0.8);
-}
-
-.navbar>li>a {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    text-decoration: none;
-}
-
-.navbar>li:hover {
-    filter: brightness(0.9);
-}
-
-.navbar-icon {
-    width: 1.5rem;
-    transition: width 0.2s;
-}
-
-.navbar>li:hover .navbar-icon {
-    width: 2.5rem;
-}
-
-.navbar-link-text {
-    font-weight: bold;
-    vertical-align: middle;
-    color: var(--text-primary);
-    text-decoration: underline var(--text-saturated);
-    text-transform: uppercase;
-
-    font-size: .4em;
-    opacity: 0;
-    transition: 0.2s;
-}
-
-.navbar>li:hover .navbar-link-text {
-    font-size: 1em;
-    opacity: 1;
-}
-
-.navbar-container {
-    display: flex;
-    flex-direction: row;
-    align-items: start;
-    justify-content: start;
 }
 
 *:has( + .subtitle) {

@@ -11,9 +11,10 @@ import Url.Parser exposing ((</>))
 import Blog
 import Home
 import Projects
+import Navbar exposing (navbar)
 
 
-type alias Flags = ()
+type alias Flags = { userAgent: String }
 
 
 type Page
@@ -26,6 +27,7 @@ type alias Model =
     { key: Nav.Key
     , url: Url.Url
     , page: Page
+    , isPhone: Bool
     }
 
 
@@ -103,9 +105,28 @@ main =
         }
 
 
+phoneUserAgents : List String
+phoneUserAgents =
+    [ "Android"
+    , "webOS"
+    , "iPhone"
+    , "iPad"
+    , "iPod"
+    , "BlackBerry"
+    , "IEMobile"
+    , "Opera Mini"
+    , "windows phone"
+    ]
+
+
+isPhone : String -> Bool
+isPhone userAgent =
+    List.any (String.toLower >> (==) (String.toLower userAgent)) phoneUserAgents
+
+
 init : Flags -> Url.Url -> Nav.Key -> (Model, Cmd Msg)
-init () url key =
-    Model key url (Home ())
+init { userAgent } url key =
+    Model key url (Home ()) (isPhone userAgent)
     |> changeRoute (urlToRoute url)
 
 
@@ -147,8 +168,34 @@ update msg model =
 
         (ProjectsMsg _, _) -> (model, Cmd.none)
 
+
 view : Model -> Document Msg
 view model =
+    model
+    |> viewContent
+    |> mapDocumentBody (\content ->
+        [ navbar
+            { direction = getNavbarDir model
+            , onTopOf = content
+            }
+        ]
+    )
+
+
+getNavbarDir : Model -> Navbar.NavbarDir
+getNavbarDir model =
+    if model.isPhone then Navbar.Horizontal else Navbar.Vertical
+
+
+mapDocumentBody : (List (Html a) -> List (Html b)) -> Document a -> Document b
+mapDocumentBody f { title, body } =
+    { title = title
+    , body = f body
+    }
+
+
+viewContent : Model -> Document Msg
+viewContent model =
     case model.page of
         Home homeModel ->
             Home.view homeModel

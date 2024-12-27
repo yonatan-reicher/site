@@ -9,7 +9,6 @@ import Time exposing (Posix)
 import Http
 import Json.Decode as D
 import Json.Decode.Extra as DE
-import Navbar exposing (navbar)
 import Ports exposing (highlightAll)
 
 
@@ -193,12 +192,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ navbar
-            { direction = Navbar.Auto
-            , onTopOf = main_ [ id "blog" ] [ viewContent model ]
-            }
-        ]
+    main_ [ id "blog" ] [ viewContent model ]
 
 
 viewContent : Model -> Html Msg

@@ -4,7 +4,6 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser exposing (Document)
-import Navbar exposing (navbar)
 
 
 type alias Flags = ()
@@ -33,12 +32,7 @@ update () () =
 view : Model -> Document Msg
 view () =
     { title = "Yonatan Reicher | Projects"
-    , body =
-        [ navbar
-            { direction = Navbar.Vertical
-            , onTopOf = viewProjects
-            }
-        ]
+    , body = [ viewProjects ]
     }
 
 

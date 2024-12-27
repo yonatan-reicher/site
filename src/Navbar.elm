@@ -1,4 +1,4 @@
-module Navbar exposing (navbar, NavbarDir(..))
+module Navbar exposing (NavbarDir(..), navbar)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -8,70 +8,63 @@ import Html.Events exposing (..)
 type NavbarDir
     = Horizontal
     | Vertical
-    | Auto
 
 
-navbar : { direction: NavbarDir, onTopOf: Html msg } -> Html msg
+directionAttr : NavbarDir -> Attribute x
+directionAttr direction =
+    case direction of
+        Horizontal ->
+            attribute "horizontal" ""
+
+        Vertical ->
+            attribute "vertical" ""
+
+
+type alias Item =
+    { name : String, link : String, iconPath : String }
+
+
+items : List Item
+items =
+    [ { name = "Home"
+      , link = "#"
+      , iconPath = "images/icons/home.svg"
+      }
+    , { name = "Projects"
+      , link = "#/projects"
+      , iconPath = "images/icons/projects.svg"
+      }
+    , { name = "Blog"
+      , link = "#/blog"
+      , iconPath = "images/icons/blog.svg"
+      }
+    , { name = "Github"
+      , link = "https://github.com/yonatan-reicher"
+      , iconPath = "images/icons/github.svg"
+      }
+    ]
+
+
+navbar : { direction : NavbarDir, onTopOf : List (Html msg) } -> Html msg
 navbar { direction, onTopOf } =
-    container (navbarElement direction) onTopOf
-
-
-container : Html msg -> Html msg -> Html msg
-container nav onTopOf =
     div
-        [ class "navbar-container"
-        ]
-        [ nav
-        , onTopOf
-        ]
-
-
-navbarElement : NavbarDir -> Html msg
-navbarElement direction =
-    ul
         [ class "navbar"
-        , case direction of
-                Horizontal -> class "navbar-horizontal"
-                Vertical -> class "navbar-vertical"
-                Auto -> class "navbar-auto"
+        , directionAttr direction
         ]
-        ( [ { name = "Home"
-            , link = "#"
-            , iconPath = "images/icons/home.svg"
-            }
-          , { name = "Projects"
-            , link = "#/projects"
-            , iconPath = "images/icons/projects.svg"
-            }
-          , { name = "Blog"
-            , link = "#/blog"
-            , iconPath = "images/icons/blog.svg"
-            }
-          , { name = "Github"
-            , link = "https://github.com/yonatan-reicher"
-            , iconPath = "images/icons/github.svg"
-            }
-          ]
-          |> List.map navbarItem
-        )
-
-
-navbarItem : { name: String, link: String, iconPath: String } -> Html msg
-navbarItem { name, link, iconPath } =
-    li []
-        [ a
-            [ href link
-            ]
-            [ img
-                [ class "navbar-icon"
-                , src iconPath
-                ]
-                []
-            , span
-                [ class "navbar-link-text"
-                ]
-                [ text name
-                ]
-            ]
+        [ row
+        , div [ class "on-top-of" ] onTopOf
         ]
 
+
+row : Html msg
+row =
+    div [ class "items" ] (List.map viewItem items)
+
+
+viewItem : Item -> Html msg
+viewItem { name, link, iconPath } =
+    a [ class "item", href link ]
+        -- TODO: Switch to using Lucide icons
+        [ img [ class "icon", src iconPath ] []
+        , text name
+        ]
