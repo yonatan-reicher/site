@@ -283,7 +283,7 @@ viewPostHeader post =
             [ a 
                 [ href ("#/blog/posts/" ++ post.fileName)
                 ]
-                [ span [] [ text (post.title) ] ]
+                [ text (post.title) ]
             ]
         , p 
             [ class "subtitle"
