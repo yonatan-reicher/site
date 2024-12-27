@@ -11487,13 +11487,7 @@ var $author$project$Blog$viewPostHeader = function (post) {
 							]),
 						_List_fromArray(
 							[
-								A2(
-								$elm$html$Html$span,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(post.title)
-									]))
+								$elm$html$Html$text(post.title)
 							]))
 					])),
 				A2(
