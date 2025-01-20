@@ -11035,12 +11035,13 @@ var $author$project$Navbar$directionAttr = function (direction) {
 	}
 };
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Links$myGithub = 'https://www.github.com/yonatan-reicher';
 var $author$project$Navbar$items = _List_fromArray(
 	[
 		{iconPath: 'images/icons/home.svg', link: '#', name: 'Home'},
 		{iconPath: 'images/icons/projects.svg', link: '#/projects', name: 'Projects'},
 		{iconPath: 'images/icons/blog.svg', link: '#/blog', name: 'Blog'},
-		{iconPath: 'images/icons/github.svg', link: 'https://github.com/yonatan-reicher', name: 'Github'}
+		{iconPath: 'images/icons/github.svg', link: $author$project$Links$myGithub, name: 'Github'}
 	]);
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$Attributes$href = function (url) {
@@ -11563,6 +11564,7 @@ var $author$project$Blog$view = function (model) {
 			]));
 };
 var $elm$html$Html$address = _VirtualDom_node('address');
+var $author$project$Links$myTwitter = 'https://www.twitter.com/batman_office';
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
@@ -11589,7 +11591,7 @@ var $author$project$Home$dashboard = function () {
 					$elm$html$Html$a,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$href('https://www.github.com/yonatan-reicher'),
+							$elm$html$Html$Attributes$href($author$project$Links$myGithub),
 							$elm$html$Html$Attributes$target('_blank')
 						]),
 					_List_fromArray(
@@ -11613,7 +11615,7 @@ var $author$project$Home$dashboard = function () {
 					$elm$html$Html$a,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$href('https://twitter.com/batman_office'),
+							$elm$html$Html$Attributes$href($author$project$Links$myTwitter),
 							$elm$html$Html$Attributes$target('_blank')
 						]),
 					_List_fromArray(
@@ -11970,6 +11972,27 @@ var $author$project$Projects$viewProjects = A2(
 						name: 'This Site',
 						picturePath: $elm$core$Maybe$Nothing
 					})
+				])),
+			A2(
+			$elm$html$Html$p,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'text-align', 'center')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('\r\n                As you might have noticed, all of these are old. One day I\'ll update this site.\r\n                The rest of my projects are on\r\n                '),
+					A2(
+					$elm$html$Html$a,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$href($author$project$Links$myGithub)
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('github')
+						])),
+					$elm$html$Html$text('.')
 				]))
 		]));
 var $author$project$Projects$view = function (_v0) {
