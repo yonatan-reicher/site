@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser exposing (Document)
+import Links exposing (myGithub)
 
 
 type alias Flags = ()
@@ -183,6 +184,15 @@ viewProjects =
                 , picturePath = Nothing
                 , date = "2022-01-28"
                 }
+            ]
+        , p [ style "text-align" "center" ]
+            [ text
+                """
+                As you might have noticed, all of these are old. One day I'll update this site.
+                The rest of my projects are on
+                """
+            , a [ href myGithub ] [ text "github" ]
+            , text "."
             ]
         ]
 
