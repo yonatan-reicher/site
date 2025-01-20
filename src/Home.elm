@@ -32,7 +32,7 @@ update () () =
 
 view : Model -> Document Msg
 view () =
-    { title = "Yonatan Reicher 🎓"
+    { title = "Yonatan Reicher λ"
     , body = [ mainContent ]
     }
 
