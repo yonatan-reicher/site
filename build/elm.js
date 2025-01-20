@@ -11040,7 +11040,7 @@ var $author$project$Navbar$items = _List_fromArray(
 	[
 		{iconPath: 'images/icons/home.svg', link: '#', name: 'Home'},
 		{iconPath: 'images/icons/projects.svg', link: '#/projects', name: 'Projects'},
-		{iconPath: 'images/icons/blog.svg', link: '#/blog', name: 'Blog'},
+		{iconPath: 'images/icons/blog.svg', link: '#/blog', name: 'Thoughts'},
 		{iconPath: 'images/icons/github.svg', link: $author$project$Links$myGithub, name: 'Github'}
 	]);
 var $elm$html$Html$a = _VirtualDom_node('a');
@@ -11365,7 +11365,7 @@ var $author$project$Blog$viewIndex = F2(
 					_List_Nil,
 					_List_fromArray(
 						[
-							$elm$html$Html$text('Articles')
+							$elm$html$Html$text('Thoughts')
 						])),
 					A2(
 					$elm$html$Html$div,
@@ -11422,7 +11422,7 @@ var $author$project$Blog$viewPostFooter = function (post) {
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Back to blog')
+						$elm$html$Html$text('Back to thoughts')
 					]))
 			]));
 };

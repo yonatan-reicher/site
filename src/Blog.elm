@@ -214,7 +214,7 @@ viewContent model =
 viewIndex : Maybe (List Post) -> Maybe String -> Html Msg
 viewIndex maybePosts maybeError =
     div []
-        [ h1 [] [ text "Articles" ]
+        [ h1 [] [ text "Thoughts" ]
         , div []
             ( case maybeError of
                 Just error -> [ text error ]
@@ -305,7 +305,7 @@ viewPostFooter post =
             [ href "#/blog"
             , class "back"
             ]
-            [ text "Back to blog"
+            [ text "Back to thoughts"
             ]
         ]
 

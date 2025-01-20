@@ -35,7 +35,7 @@ items =
       , link = "#/projects"
       , iconPath = "images/icons/projects.svg"
       }
-    , { name = "Blog"
+    , { name = "Thoughts"
       , link = "#/blog"
       , iconPath = "images/icons/blog.svg"
       }
