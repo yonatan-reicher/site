@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser exposing (Document)
+import Links exposing (myGithub, myTwitter)
 
 
 type alias Flags = ()
@@ -66,14 +67,14 @@ dashboard =
     [ span []
         [ bold [ text "Most" ]
         , text " of my code is on "
-        , a [ href "https://www.github.com/yonatan-reicher", target "_blank" ]
+        , a [ href myGithub, target "_blank" ]
             [ text "github" ]
         , text "."
         ]
     , span []
         [ bold [ text "Sometimes" ]
         , text " I upload art to "
-        , a [ href "https://twitter.com/batman_office", target "_blank" ]
+        , a [ href myTwitter, target "_blank" ]
             [ text "twitter" ]
         , text "."
         ]

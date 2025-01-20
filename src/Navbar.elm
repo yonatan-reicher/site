@@ -3,6 +3,7 @@ module Navbar exposing (NavbarDir(..), navbar)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Links exposing (myGithub)
 
 
 type NavbarDir
@@ -39,7 +40,7 @@ items =
       , iconPath = "images/icons/blog.svg"
       }
     , { name = "Github"
-      , link = "https://github.com/yonatan-reicher"
+      , link = myGithub
       , iconPath = "images/icons/github.svg"
       }
     ]
