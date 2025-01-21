@@ -121,7 +121,7 @@ phoneUserAgents =
 
 isPhone : String -> Bool
 isPhone userAgent =
-    List.any (String.toLower >> (==) (String.toLower userAgent)) phoneUserAgents
+    List.any (String.toLower >> String.contains (String.toLower userAgent)) phoneUserAgents
 
 
 init : Flags -> Url.Url -> Nav.Key -> (Model, Cmd Msg)

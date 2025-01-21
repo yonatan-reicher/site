@@ -7259,7 +7259,7 @@ var $author$project$Main$isPhone = function (userAgent) {
 		A2(
 			$elm$core$Basics$composeR,
 			$elm$core$String$toLower,
-			$elm$core$Basics$eq(
+			$elm$core$String$contains(
 				$elm$core$String$toLower(userAgent))),
 		$author$project$Main$phoneUserAgents);
 };
@@ -11718,7 +11718,7 @@ var $author$project$Home$view = function (_v0) {
 	return {
 		body: _List_fromArray(
 			[$author$project$Home$mainContent]),
-		title: 'Yonatan Reicher 🎓'
+		title: 'Yonatan Reicher λ'
 	};
 };
 var $elm$html$Html$br = _VirtualDom_node('br');
