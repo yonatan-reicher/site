@@ -62,7 +62,7 @@ def create_new_post_file(file_path):
 
 
 def str_to_filename(s: str) -> str:
-    return ''.join(c if c.isalnum() else '-' for c in s).lower()
+    return ''.join(c if c.isalnum() else '-' for c in s).lower() + '.html'
 
 
 def main():
