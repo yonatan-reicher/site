@@ -7692,6 +7692,11 @@ var $elm$http$Http$expectString = function (toMsg) {
 		$elm$http$Http$resolve($elm$core$Result$Ok));
 };
 var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Ports$fixScriptTags = _Platform_outgoingPort(
+	'fixScriptTags',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
 var $author$project$Ports$highlightAll = _Platform_outgoingPort(
 	'highlightAll',
 	function ($) {
@@ -10893,7 +10898,12 @@ var $author$project$Blog$update = F2(
 					return _Utils_Tuple2(
 						$author$project$Blog$PostPage(
 							{content: content, post: post}),
-						$author$project$Ports$highlightAll(_Utils_Tuple0));
+						$elm$core$Platform$Cmd$batch(
+							_List_fromArray(
+								[
+									$author$project$Ports$highlightAll(_Utils_Tuple0),
+									$author$project$Ports$fixScriptTags(_Utils_Tuple0)
+								])));
 				} else {
 					var error = msg.a.a;
 					var message = function () {
