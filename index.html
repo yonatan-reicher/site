@@ -31,6 +31,16 @@
                     });
                 });
             });
+            app.ports.fixScriptTags.subscribe(() => {
+                window.requestAnimationFrame(() => {
+                    document.querySelectorAll('[script]').forEach(el => {
+                        el.hidden = true;
+                        const newEl = document.createElement('script');
+                        newEl.innerHTML = el.getAttribute('script');
+                        document.body.appendChild(newEl);
+                    });
+                });
+            });
         </script>
     </body>
 </html>

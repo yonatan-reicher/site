@@ -9,7 +9,7 @@ import Time exposing (Posix)
 import Http
 import Json.Decode as D
 import Json.Decode.Extra as DE
-import Ports exposing (highlightAll)
+import Ports exposing (highlightAll, fixScriptTags)
 
 
 type Model
@@ -173,7 +173,10 @@ update msg model =
                 { post = post
                 , content = content
                 }
-            , highlightAll()
+            , Cmd.batch
+                [ highlightAll()
+                , fixScriptTags()
+                ]
             )
 
         PostBodyLoaded (Err error) ->
