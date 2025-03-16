@@ -6,10 +6,12 @@ import datetime
 import json
 import os
 import sys
+from pathlib import Path
 
 
-JSON_FILE_PATH = "posts.json"
-POSTS_DIR = "posts"
+BLOG_DIR = Path(__file__).parent.resolve()
+JSON_FILE_PATH = BLOG_DIR / "posts.json"
+POSTS_DIR = BLOG_DIR / "posts"
 
 
 def error(msg):
