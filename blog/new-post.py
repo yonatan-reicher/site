@@ -35,7 +35,7 @@ def generate_json_obj(title, file_name):
     obj = {
         "title": title,
         "date": now.strftime("%Y-%m-%d"),
-        "fileName": file_name,
+        "fileName": file_name.replace(".html", ""),
     }
     return obj
 
