@@ -202,7 +202,7 @@ viewContent model =
             |> mapDocument HomeMsg
 
         Blog blogModel ->
-            { title = "Yonatan Reicher | Blog"
+            { title = "Jonathan Reicher | Blog"
             , body =
                 [ Blog.view blogModel
                   |> Html.map BlogMsg

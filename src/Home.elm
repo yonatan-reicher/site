@@ -32,7 +32,7 @@ update () () =
 
 view : Model -> Document Msg
 view () =
-    { title = "Yonatan Reicher λ"
+    { title = "Jonathan Reicher λ"
     , body = [ mainContent ]
     }
 
@@ -40,11 +40,11 @@ view () =
 mainContent : Html Msg
 mainContent =
     div [ class "dashboard" ]
-        [ h1 [] [ text "Yonatan Reicher" ]
+        [ h1 [] [ text "Jonathan Reicher" ]
         , img [ class "me-img", src "images/me.png" ] []
         , p [] [ text """
-            Hello! I'm Yonatan Reicher, and this is my site. I make compilers,
-            software and sometimes art.
+            Hello! I'm Jonathan Reicher, or maybe Yonatan Reicher, and this is
+            my site. I make compilers, software and sometimes art.
             """ ]
         , viewDashboard dashboard
         , span

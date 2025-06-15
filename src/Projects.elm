@@ -32,7 +32,7 @@ update () () =
 
 view : Model -> Document Msg
 view () =
-    { title = "Yonatan Reicher | Projects"
+    { title = "Jonathan Reicher | Projects"
     , body = [ viewProjects ]
     }
 
@@ -250,7 +250,7 @@ viewAbout =
             ]
             [ text
                 """
-                Hi, I'm Yonatan Reicher.
+                Hi, I'm Jonathan Reicher.
                 I'm studying to become a software engineer.
                 Currently, I am earning credit for a degree in Computer Scienece,
                 and in my last year of Magshimim.

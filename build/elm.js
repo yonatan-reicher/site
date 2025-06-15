@@ -11693,7 +11693,7 @@ var $author$project$Home$mainContent = A2(
 			_List_Nil,
 			_List_fromArray(
 				[
-					$elm$html$Html$text('Yonatan Reicher')
+					$elm$html$Html$text('Jonathan Reicher')
 				])),
 			A2(
 			$elm$html$Html$img,
@@ -11708,7 +11708,7 @@ var $author$project$Home$mainContent = A2(
 			_List_Nil,
 			_List_fromArray(
 				[
-					$elm$html$Html$text('\r\n            Hello! I\'m Yonatan Reicher, and this is my site. I make compilers,\r\n            software and sometimes art.\r\n            ')
+					$elm$html$Html$text('\r\n            Hello! I\'m Jonathan Reicher, or maybe Yonatan Reicher, and this is\r\n            my site. I make compilers, software and sometimes art.\r\n            ')
 				])),
 			$author$project$Home$viewDashboard($author$project$Home$dashboard),
 			A2(
@@ -11728,7 +11728,7 @@ var $author$project$Home$view = function (_v0) {
 	return {
 		body: _List_fromArray(
 			[$author$project$Home$mainContent]),
-		title: 'Yonatan Reicher λ'
+		title: 'Jonathan Reicher λ'
 	};
 };
 var $elm$html$Html$br = _VirtualDom_node('br');
@@ -12009,7 +12009,7 @@ var $author$project$Projects$view = function (_v0) {
 	return {
 		body: _List_fromArray(
 			[$author$project$Projects$viewProjects]),
-		title: 'Yonatan Reicher | Projects'
+		title: 'Jonathan Reicher | Projects'
 	};
 };
 var $author$project$Main$viewContent = function (model) {
@@ -12031,7 +12031,7 @@ var $author$project$Main$viewContent = function (model) {
 						$author$project$Main$BlogMsg,
 						$author$project$Blog$view(blogModel))
 					]),
-				title: 'Yonatan Reicher | Blog'
+				title: 'Jonathan Reicher | Blog'
 			};
 		default:
 			var projectsModel = _v0.a;
