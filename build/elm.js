@@ -11282,16 +11282,19 @@ var $elm$html$Html$Attributes$src = function (url) {
 		'src',
 		_VirtualDom_noJavaScriptOrHtmlUri(url));
 };
+var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
 var $author$project$Navbar$viewItem = function (_v0) {
 	var name = _v0.name;
 	var link = _v0.link;
 	var iconPath = _v0.iconPath;
+	var t = A2($elm$core$String$startsWith, '#', link) ? '_self' : '_blank';
 	return A2(
 		$elm$html$Html$a,
 		_List_fromArray(
 			[
 				$elm$html$Html$Attributes$class('item'),
-				$elm$html$Html$Attributes$href(link)
+				$elm$html$Html$Attributes$href(link),
+				$elm$html$Html$Attributes$target(t)
 			]),
 		_List_fromArray(
 			[
@@ -11790,7 +11793,6 @@ var $elm$html$Html$address = _VirtualDom_node('address');
 var $author$project$Links$myTwitter = 'https://www.twitter.com/batman_office';
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
 var $author$project$Home$dashboard = function () {
 	var bold = $elm$html$Html$span(
 		_List_fromArray(
