@@ -64,7 +64,8 @@ row =
 
 viewItem : Item -> Html msg
 viewItem { name, link, iconPath } =
-    a [ class "item", href link ]
+    let t = if link |> String.startsWith "#" then "_self" else "_blank" in
+    a [ class "item", href link, target t ]
         -- TODO: Switch to using Lucide icons
         [ img [ class "icon", src iconPath ] []
         , text name
