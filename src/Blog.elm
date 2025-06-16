@@ -10,6 +10,8 @@ import Http
 import Json.Decode as D
 import Json.Decode.Extra as DE
 import Ports exposing (highlightAll, fixScriptTags)
+import MyMarkdown as MD
+import Task
 
 
 type Model
@@ -45,6 +47,36 @@ type PostLoadedError
 type PostBodyLoadedError
     = PostBodyGetError Http.Error
     | PostBodyParseError
+    | PostFileNameUnknownFileType
+
+
+type FileType
+    = MarkdownFile
+    | HtmlFile
+
+
+fileTypeOfFileName : String -> Maybe FileType
+fileTypeOfFileName name =
+    if name |> String.endsWith ".html" then Just HtmlFile
+    else if name |> String.endsWith ".md" then Just MarkdownFile
+    else Nothing
+
+
+renderFile : FileType -> String -> Result PostBodyLoadedError (List (Html msg))
+renderFile ft text =
+    case ft of
+        MarkdownFile ->
+            case MD.parse text of
+                Ok markdown -> Ok [ MD.toHtml markdown ]
+                Err mdError -> Err PostBodyParseError
+
+        HtmlFile ->
+            case Html.Parser.run text of
+                Ok node -> Ok (Html.Parser.Util.toVirtualDom node)
+                Err deadEnds ->
+                    Debug.log "Dead ends" deadEnds
+                    |> \_ -> Err PostBodyParseError
+
 
 
 httpErrorToString : Http.Error -> String
@@ -129,28 +161,25 @@ update msg model =
             )
 
         PostLoaded (Result.Ok post) ->
-            ( PostPage
-                { post = post
-                , content = []
-                }
-            , Http.get
-                { url = "blog/posts/" ++ post.fileName ++ ".html"
-                , expect =
-                    Http.expectString
-                        ( Result.mapError PostBodyGetError
-                          >> Result.andThen (\htmlText ->
-                              case Html.Parser.run htmlText of
-                                  Err deadEnds ->
-                                      Debug.log "Dead ends" deadEnds
-                                      |> \_ -> Err PostBodyParseError
-
-                                  Ok node ->
-                                      Ok (Html.Parser.Util.toVirtualDom node))
-                          >> Result.map (\body -> (post, body))
-                          >> PostBodyLoaded
-                        )
-                }
-            )
+            let emptyPage = PostPage { post = post, content = [] } in
+            case fileTypeOfFileName post.fileName of
+                Nothing ->
+                    ( emptyPage
+                    , Task.attempt PostBodyLoaded (Task.fail PostFileNameUnknownFileType)
+                    )
+                Just ft ->
+                    ( emptyPage
+                    , Http.get
+                        { url = "blog/posts/" ++ post.fileName
+                        , expect =
+                            Http.expectString
+                                ( Result.mapError PostBodyGetError
+                                  >> Result.andThen (renderFile ft)
+                                  >> Result.map (\body -> (post, body))
+                                  >> PostBodyLoaded
+                                )
+                        }
+                    )
 
         PostLoaded (Result.Err (PostsGetError error)) ->
             ( Index
@@ -184,6 +213,7 @@ update msg model =
                    case error of
                        PostBodyGetError httpError -> httpErrorToString httpError
                        PostBodyParseError -> "File is not a post"
+                       PostFileNameUnknownFileType -> "Unknown file extension"
             in
                 ( Index
                     { posts = Nothing
