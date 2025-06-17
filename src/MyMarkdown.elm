@@ -7,7 +7,7 @@ module MyMarkdown exposing
 
 import Markdown as M
 import Html exposing (Html)
-import Regex exposing (Regex)
+import Regex
 
 
 {-|
