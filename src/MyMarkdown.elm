@@ -7,6 +7,7 @@ module MyMarkdown exposing
 
 import Markdown as M
 import Html exposing (Html)
+import Regex exposing (Regex)
 
 
 {-|
@@ -33,18 +34,41 @@ type Markdown
 type alias Error = Never
 
 
+startsWithLetter : String -> Bool
+startsWithLetter line =
+    case String.uncons line of
+        Nothing -> False
+        Just (c, _) -> Char.isAlpha c
+
+
+startsWithLink : String -> Bool
+startsWithLink line =
+    let r =
+            Regex.fromString "^\\[.*\\]\\(.*\\)$"
+            -- TODO: Would probably be better if we failed here, right?
+            -- Maybe this is a case for exceptions and not result types..?
+            -- Too bad we don't have that!
+            |> Maybe.withDefault Regex.never
+    in
+    Regex.contains r line
+
+
+isTextLine : String -> Bool
+isTextLine line =
+    not (String.isEmpty line)
+    && (  startsWithLetter line
+       || startsWithLink line
+       )
+
+
 removeBadNewLines : String -> String
 removeBadNewLines text =
-    let startsWithLetter line =
-            case String.uncons line of
-                Nothing -> False
-                Just (c, _) -> Char.isAlpha c in
     text
     |> String.lines
     |> List.foldr (\line string ->
             let sep =
-                    if startsWithLetter line && startsWithLetter string then
-                        ""
+                    if isTextLine line && isTextLine string then
+                        " "
                     else
                         "\n" in
             line ++ sep ++ string
