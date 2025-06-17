@@ -44,7 +44,7 @@ startsWithLetter line =
 startsWithLink : String -> Bool
 startsWithLink line =
     let r =
-            Regex.fromString "^\\[.*\\]\\(.*\\)$"
+            Regex.fromString "^\\[.*\\]\\(.*\\)"
             -- TODO: Would probably be better if we failed here, right?
             -- Maybe this is a case for exceptions and not result types..?
             -- Too bad we don't have that!
