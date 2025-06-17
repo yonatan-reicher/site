@@ -7993,7 +7993,7 @@ var $author$project$MyMarkdown$startsWithLink = function (line) {
 	var r = A2(
 		$elm$core$Maybe$withDefault,
 		$elm$regex$Regex$never,
-		$elm$regex$Regex$fromString('^\\[.*\\]\\(.*\\)$'));
+		$elm$regex$Regex$fromString('^\\[.*\\]\\(.*\\)'));
 	return A2($elm$regex$Regex$contains, r, line);
 };
 var $author$project$MyMarkdown$isTextLine = function (line) {
