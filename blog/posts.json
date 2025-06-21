@@ -68,6 +68,16 @@
         "title": "Daily",
         "date": "2025-06-17",
         "fileName": "2025-06-17.md"
+    },
+    {
+        "title": "Daily",
+        "date": "2025-06-20",
+        "fileName": "2025-06-20.md"
+    },
+    {
+        "title": "All the Rust libraries",
+        "date": "2025-06-20",
+        "fileName": "all-the-rust-libraries.md"
     }
 ]
 
