@@ -15,3 +15,4 @@ Goals for this list:
 - `serde` - A classic. Serialize/Deserialize everything. Use the `derive`
   feature flag.
 - `noise` - More advanced random numbers. Includes Perlin noise and friends.
+- `dirs` - Get standard directories to save all your application data n stuff.
