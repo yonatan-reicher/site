@@ -13,6 +13,6 @@ Goals for this list:
 - `crossterm` - Fancy terminal stuff. Colors/cursor/keyboard. Not for a TUI,
   it's more raw than that.
 - `serde` - A classic. Serialize/Deserialize everything. Use the `derive`
-  feature flag.
+  feature flag. `toml` for human readable. `rmp-serde` for compact.
 - `noise` - More advanced random numbers. Includes Perlin noise and friends.
 - `dirs` - Get standard directories to save all your application data n stuff.
