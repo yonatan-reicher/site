@@ -1,5 +1,7 @@
 """
-This script takes a title as a cli argument, and creates a new markdown file in the posts directory with the title as the file name, and adds it to posts.json.
+This script takes a title as a cli argument, and creates a new markdown file in
+the posts directory with the title as the file name, and adds it to
+`posts.json`.
 """
 
 import datetime
