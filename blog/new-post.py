@@ -8,6 +8,7 @@ import datetime
 import json
 import os
 import sys
+import typing
 from pathlib import Path
 
 
@@ -22,14 +23,19 @@ def error(msg):
     sys.exit(1)
 
 
-def parse_args():
+def parse_args() -> tuple[str, typing.Literal["html", "md"]]:
     """Parses the command line arguments and returns the title"""
-    if len(sys.argv) < 2:
-        error("""
+    usage = """
 Usage:
-    python new-post.py "<title>"
-        """.strip())
-    return sys.argv[1]
+    python3 new-post.py --html "<title>"
+    python3 new-post.py --md "<title>"
+    """.strip()
+    match sys.argv:
+        case [_, "--html", title] | [_, "--md", title]:
+            ext = sys.argv[1][2:]  # Get the extension from the argument
+            return title, typing.cast(typing.Literal['html', 'md'], ext)
+        case _:
+            return error(f"Invalid arguments. Usage: \n{usage}")
 
 
 def generate_json_obj(title, file_name):
@@ -65,22 +71,22 @@ def create_new_post_file(file_path):
         pass
 
 
-def str_to_filename(s: str) -> str:
-    return ''.join(c if c.isalnum() else '-' for c in s).lower() + '.html'
+def str_to_filename(s: str, ext: str) -> str:
+    return ''.join(c if c.isalnum() else '-' for c in s).lower() + '.' + ext
 
 
 def main():
-    title = parse_args()
-    file_name = str_to_filename(title)
-    file_path = os.path.join(POSTS_DIR, file_name)
+    title, kind = parse_args()
+    file_name = str_to_filename(title, kind)
+    file_path = POSTS_DIR / file_name
 
-    if os.path.exists(file_path):
+    if file_path.exists():
         error("File already exists")
 
     json_obj = generate_json_obj(title, file_name)
     add_to_posts_json(json_obj)
     create_new_post_file(file_path)
-    print(f"Added new post to {JSON_FILE_PATH} at path {file_path}")
+    print(f"Added new post to {JSON_FILE_PATH} at path: \n{file_path}")
 
 
 if __name__ == "__main__":
