@@ -1,5 +1,15 @@
 [
     {
+        "title": "Putting Myself Out There",
+        "date": "2025-07-11",
+        "fileName": "putting-myself-out-there.md"
+    },
+    {
+        "title": "MinGW vs W64DevKit vs MSYS2 vs Cygwin vs WSL",
+        "date": "2025-07-01",
+        "fileName": "mingw-vs-w64devkit-vs-msys2-vs-cygwin.md"
+    },
+    {
         "title": "2025-06 - The War is Over I Guess?",
         "date": "2025-06-30",
         "fileName": "2025-06---the-war-is-over-i-guess.md"
