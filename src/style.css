@@ -49,27 +49,27 @@ aside {
   background-color: var(--bg-secondary);
 }
 
-.dashboard {
+.home {
     width: fit-content;
     max-width: 500px;
     margin: 0 auto;
     padding: 0;
 }
 
-.dashboard > h1 {
+.home > h1 {
     text-align: center;
 }
 
-.dashboard > ul {
+.home > ul {
     padding-inline-start: 30px;
 }
 
-.dashboard > ul > li {
+.home > ul > li {
     line-height: 2em;
     list-style: "— ";
 }
 
-.dashboard .me-img {
+.home .me-img {
     position: absolute;
     width: 200px;
     transform: translate(500px, -50px);

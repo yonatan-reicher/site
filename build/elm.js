@@ -11914,10 +11914,11 @@ var $author$project$Blog$view = function (model) {
 			]));
 };
 var $elm$html$Html$address = _VirtualDom_node('address');
-var $author$project$Links$myTwitter = 'https://www.twitter.com/batman_office';
+var $author$project$Links$myInstagram = 'https://www.instagram.com/yonatan.reicher';
+var $author$project$Home$openInNewTab = $elm$html$Html$Attributes$target('_blank');
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $author$project$Home$dashboard = function () {
+var $author$project$Home$items = function () {
 	var bold = $elm$html$Html$span(
 		_List_fromArray(
 			[
@@ -11941,7 +11942,7 @@ var $author$project$Home$dashboard = function () {
 					_List_fromArray(
 						[
 							$elm$html$Html$Attributes$href($author$project$Links$myGithub),
-							$elm$html$Html$Attributes$target('_blank')
+							$author$project$Home$openInNewTab
 						]),
 					_List_fromArray(
 						[
@@ -11959,17 +11960,40 @@ var $author$project$Home$dashboard = function () {
 						[
 							$elm$html$Html$text('Sometimes')
 						])),
-					$elm$html$Html$text(' I upload art to '),
+					$elm$html$Html$text(' I write and put it '),
 					A2(
 					$elm$html$Html$a,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$href($author$project$Links$myTwitter),
-							$elm$html$Html$Attributes$target('_blank')
+							$elm$html$Html$Attributes$href('#/blog')
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text('twitter')
+							$elm$html$Html$text('here')
+						])),
+					$elm$html$Html$text('.')
+				])),
+			A2(
+			$elm$html$Html$span,
+			_List_Nil,
+			_List_fromArray(
+				[
+					bold(
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Talk')
+						])),
+					$elm$html$Html$text(' to me on instagram '),
+					A2(
+					$elm$html$Html$a,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$href($author$project$Links$myInstagram),
+							$author$project$Home$openInNewTab
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('@yonatan.reicher')
 						])),
 					$elm$html$Html$text('.')
 				])),
@@ -12002,23 +12026,21 @@ var $elm$core$List$singleton = function (value) {
 	return _List_fromArray(
 		[value]);
 };
-var $author$project$Home$viewDashboard = function (items) {
-	return A2(
-		$elm$html$Html$ul,
-		_List_Nil,
+var $author$project$Home$myBullets = A2(
+	$elm$html$Html$ul,
+	_List_Nil,
+	A2(
+		$elm$core$List$map,
 		A2(
-			$elm$core$List$map,
-			A2(
-				$elm$core$Basics$composeL,
-				$elm$html$Html$li(_List_Nil),
-				$elm$core$List$singleton),
-			items));
-};
+			$elm$core$Basics$composeL,
+			$elm$html$Html$li(_List_Nil),
+			$elm$core$List$singleton),
+		$author$project$Home$items));
 var $author$project$Home$mainContent = A2(
 	$elm$html$Html$div,
 	_List_fromArray(
 		[
-			$elm$html$Html$Attributes$class('dashboard')
+			$elm$html$Html$Attributes$class('home')
 		]),
 	_List_fromArray(
 		[
@@ -12044,7 +12066,7 @@ var $author$project$Home$mainContent = A2(
 				[
 					$elm$html$Html$text('\r\n            Hello! I\'m Jonathan Reicher, or maybe Yonatan Reicher, and this is\r\n            my site. I make compilers, software and sometimes art.\r\n            ')
 				])),
-			$author$project$Home$viewDashboard($author$project$Home$dashboard),
+			$author$project$Home$myBullets,
 			A2(
 			$elm$html$Html$span,
 			_List_fromArray(
@@ -12055,7 +12077,7 @@ var $author$project$Home$mainContent = A2(
 				]),
 			_List_fromArray(
 				[
-					$elm$html$Html$text('\r\n                Please notice this site is old. Most projects and information\r\n                listed here are not up to date.\r\n                ')
+					$elm$html$Html$text('\r\n                This site is old.\r\n                Most things here are not up to date.\r\n                ')
 				]))
 		]));
 var $author$project$Home$view = function (_v0) {

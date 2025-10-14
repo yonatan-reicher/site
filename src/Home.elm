@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser exposing (Document)
-import Links exposing (myGithub, myTwitter)
+import Links exposing (myGithub, myInstagram)
 
 
 type alias Flags = ()
@@ -39,57 +39,67 @@ view () =
 
 mainContent : Html Msg
 mainContent =
-    div [ class "dashboard" ]
+    div [ class "home" ]
         [ h1 [] [ text "Jonathan Reicher" ]
         , img [ class "me-img", src "images/me.png" ] []
         , p [] [ text """
             Hello! I'm Jonathan Reicher, or maybe Yonatan Reicher, and this is
             my site. I make compilers, software and sometimes art.
             """ ]
-        , viewDashboard dashboard
+        , myBullets
         , span
             [ style "position" "fixed"
             , style "bottom" "10"
             , style "max-width" "inherit"
             ]
             [ text """
-                Please notice this site is old. Most projects and information
-                listed here are not up to date.
+                This site is old.
+                Most things here are not up to date.
                 """
             ]
         ]
-                    
 
 
-dashboard : List (Html Msg)
-dashboard =
+myBullets : Html Msg
+myBullets =
+    ul [] (List.map (li [] << List.singleton) items)
+
+
+items : List (Html Msg)
+items =
     let bold = span [ style "font-weight" "bold" ] in
     [ span []
         [ bold [ text "Most" ]
         , text " of my code is on "
-        , a [ href myGithub, target "_blank" ]
+        , a [ href myGithub, openInNewTab ]
             [ text "github" ]
         , text "."
         ]
     , span []
         [ bold [ text "Sometimes" ]
-        , text " I upload art to "
-        , a [ href myTwitter, target "_blank" ]
-            [ text "twitter" ]
+        , text " I write and put it "
+        , a [ href "#/blog" ]
+            [ text "here" ]
+        , text "."
+        ]
+    , span []
+        [ bold [ text "Talk" ]
+        , text " to me on instagram "
+        , a [ href myInstagram, openInNewTab ] [ text "@yonatan.reicher" ]
         , text "."
         ]
     , span []
         [ bold [ text "Contact" ]
         , text " me at "
         , address [ style "display" "inline" ] [ text "yony252525@gmail.com" ]
-        , text "."
+        , text "." 
         ]
     ]
 
 
-viewDashboard : List (Html Msg) -> Html Msg
-viewDashboard items =
-    ul [] (List.map (li [] << List.singleton) items)
+openInNewTab : Attribute msg
+openInNewTab =
+    target "_blank"
 
 
 subscriptions : Model -> Sub Msg
