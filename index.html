@@ -5172,26 +5172,6 @@ var $author$project$Home$update = F2(
 	function (_v0, _v1) {
 		return _Utils_Tuple2(_Utils_Tuple0, $elm$core$Platform$Cmd$none);
 	});
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Home$bottomDisclaimer = function () {
-	var fixed = false;
-	return A2(
-		$elm$html$Html$span,
-		fixed ? _List_fromArray(
-			[
-				A2($elm$html$Html$Attributes$style, 'position', 'fixed'),
-				A2($elm$html$Html$Attributes$style, 'bottom', '10'),
-				A2($elm$html$Html$Attributes$style, 'max-width', 'inherit')
-			]) : _List_Nil,
-		_List_fromArray(
-			[
-				$elm$html$Html$text('\n            This site is old.\n            Most things here are not up to date.\n            ')
-			]));
-}();
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -5202,9 +5182,7 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$em = _VirtualDom_node('em');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$core$Basics$composeL = F3(
 	function (g, f, x) {
@@ -5221,8 +5199,14 @@ var $elm$html$Html$Attributes$href = function (url) {
 };
 var $author$project$Links$myGithub = 'https://www.github.com/yonatan-reicher';
 var $author$project$Links$myInstagram = 'https://www.instagram.com/yonatan.reicher';
+var $author$project$Links$myMastodon = 'https://www.mastodon.social/@yonatanreicher';
 var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
 var $author$project$Home$openInNewTab = $elm$html$Html$Attributes$target('_blank');
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Home$items = function () {
 	var bold = $elm$html$Html$span(
 		_List_fromArray(
@@ -5288,7 +5272,7 @@ var $author$project$Home$items = function () {
 						[
 							$elm$html$Html$text('Talk')
 						])),
-					$elm$html$Html$text(' to me on instagram '),
+					$elm$html$Html$text(' to me on '),
 					A2(
 					$elm$html$Html$a,
 					_List_fromArray(
@@ -5298,7 +5282,31 @@ var $author$project$Home$items = function () {
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text('@yonatan.reicher')
+							$elm$html$Html$text('instagram')
+						])),
+					$elm$html$Html$text('.')
+				])),
+			A2(
+			$elm$html$Html$span,
+			_List_Nil,
+			_List_fromArray(
+				[
+					bold(
+					_List_fromArray(
+						[
+							$elm$html$Html$text('How')
+						])),
+					$elm$html$Html$text(' do I use  '),
+					A2(
+					$elm$html$Html$a,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$href($author$project$Links$myMastodon),
+							$author$project$Home$openInNewTab
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('mastodon')
 						])),
 					$elm$html$Html$text('.')
 				])),
@@ -5366,14 +5374,6 @@ var $author$project$Home$mainContent = A2(
 					$elm$html$Html$text('Jonathan Reicher')
 				])),
 			A2(
-			$elm$html$Html$img,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('me-img'),
-					$elm$html$Html$Attributes$src('images/me.png')
-				]),
-			_List_Nil),
-			A2(
 			$elm$html$Html$p,
 			_List_Nil,
 			_List_fromArray(
@@ -5389,51 +5389,35 @@ var $author$project$Home$mainContent = A2(
 					$elm$html$Html$text('\n            Currently I currently working under Shachar Itzaki at The Technion\n            for my MSc in Computer Science on Lean 4 and the humans that use it.\n            ')
 				])),
 			A2(
-			$elm$html$Html$h2,
-			_List_Nil,
+			$elm$html$Html$img,
 			_List_fromArray(
 				[
-					$elm$html$Html$text('teaching')
-				])),
-			A2(
-			$elm$html$Html$p,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('I am TA-ing '),
-					A2(
-					$elm$html$Html$em,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Selected Topics In Formal Proofs ')
-						])),
-					$elm$html$Html$text('under Yuval Filmus. '),
-					$elm$html$Html$text('I have previously TA-ed '),
-					A2(
-					$elm$html$Html$em,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Programming Languages ')
-						])),
-					$elm$html$Html$text('and had the pleasure of sharing my excitement for ML and '),
-					$elm$html$Html$text('the displeasure of helping students understand SML/NJ '),
-					$elm$html$Html$text('error messages.')
-				])),
-			A2(
-			$elm$html$Html$p,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('\n            In the past I have also taught an advanced software engineering\n            class for high-schoolers at Ort Guttman School for a year, and have mentored\n            first-year students in C-programming at a high-school program called\n            Magshimim.\n            ')
-				])),
-			$author$project$Home$bottomDisclaimer
+					$elm$html$Html$Attributes$class('me-img'),
+					$elm$html$Html$Attributes$src('images/me.png')
+				]),
+			_List_Nil)
 		]));
+var $elm$virtual_dom$VirtualDom$node = function (tag) {
+	return _VirtualDom_node(
+		_VirtualDom_noScript(tag));
+};
+var $elm$html$Html$node = $elm$virtual_dom$VirtualDom$node;
+var $elm$html$Html$Attributes$rel = _VirtualDom_attribute('rel');
+var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
+var $author$project$Common$myStylesheet = A3(
+	$elm$html$Html$node,
+	'link',
+	_List_fromArray(
+		[
+			$elm$html$Html$Attributes$rel('stylesheet'),
+			$elm$html$Html$Attributes$type_('text/css'),
+			$elm$html$Html$Attributes$href('src/style.css')
+		]),
+	_List_Nil);
 var $author$project$Home$view = function (_v0) {
 	return {
 		body: _List_fromArray(
-			[$author$project$Home$mainContent]),
+			[$author$project$Common$myStylesheet, $author$project$Home$mainContent]),
 		title: 'Jonathan Reicher λ'
 	};
 };

@@ -4,8 +4,12 @@ module Links exposing (..)
 myGithub : String
 myGithub = "https://www.github.com/yonatan-reicher"
 
-myTwitter : String
-myTwitter = "https://www.twitter.com/batman_office"
+
+myMastodon : String
+myMastodon = "https://www.mastodon.social/@yonatanreicher"
+
 
 myInstagram : String
 myInstagram = "https://www.instagram.com/yonatan.reicher"
+
+
