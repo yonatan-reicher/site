@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser exposing (Document)
-import Links exposing (myGithub, myInstagram, myMastodon)
+import Links exposing (myGithub, myInstagram, myMastodon, myBlog)
 import Common exposing (myStylesheet)
 
 
@@ -49,9 +49,16 @@ items =
     , span []
         [ bold [ text "Sometimes" ]
         , text " I write and put it "
-        , a [ href "#/blog" ]
+        , a [ href myBlog ]
             [ text "here" ]
         , text "."
+        ]
+    , span
+        []
+        [ bold [ text "Check" ]
+        , text " out some "
+        , a [ href "/projects.html" ] [ text "projects" ]
+        , text " I did."
         ]
     , span []
         [ bold [ text "Talk" ]
@@ -79,11 +86,15 @@ myBullets =
     ul [] (List.map (li [] << List.singleton) items)
 
 
-mainContent : Html Msg
-mainContent =
-    div [ class "home" ]
-        [ h1 [] [ text "Jonathan Reicher" ]
-        , p [] [ text """
+textColumn : Html Msg
+textColumn =
+    div
+        [ style "display" "inline-block"
+        , style "width" "500px"
+        , style "box-sizing" "border-box"
+        , style "padding-top" "70px"
+        ]
+        [ p [] [ text """
             Hello! I'm Jonathan Reicher, or maybe Yonatan Reicher, and this is
             my site. I make compilers, software and sometimes art.
             """ ]
@@ -109,7 +120,45 @@ mainContent =
         --     first-year students in C-programming at a high-school program called
         --     Magshimim.
         --     """ ]
-        , img [ class "me-img", src "images/me.png" ] []
+        ]
+
+
+picture =
+    img
+        [ src "images/me.png"
+        , style "width" "100%"
+        ] []
+
+
+coolColumn : Html Msg
+coolColumn =
+    div
+        [ style "display" "inline-block"
+        , style "width" "50%"
+        , style "vertical-align" "top"
+        ]
+        [ div
+            [ style "margin" "0 100px"
+            ]
+            [ h1
+                [ style "text-wrap" "nowrap"
+                ]
+                [ text "Jonathan Reicher"
+                ]
+            , picture
+            ]
+        ]
+
+
+mainContent : Html Msg
+mainContent =
+    div
+        [ style "width" "1000px"
+        , style "max-width" "100%"
+        , style "margin" "0 auto"
+        ]
+        [ textColumn
+        , coolColumn -- picture and name
         ]
 
 

@@ -5,6 +5,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser exposing (Document)
 import Links exposing (myGithub)
+import Common exposing (myStylesheet)
 
 
 main = Browser.document
@@ -41,7 +42,10 @@ update () () =
 view : Model -> Document Msg
 view () =
     { title = "Jonathan Reicher | Projects"
-    , body = [ viewProjects ]
+    , body =
+        [ myStylesheet
+        , viewProjects
+        ]
     }
 
 

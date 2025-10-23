@@ -5172,6 +5172,9 @@ var $author$project$Home$update = F2(
 	function (_v0, _v1) {
 		return _Utils_Tuple2(_Utils_Tuple0, $elm$core$Platform$Cmd$none);
 	});
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -5180,10 +5183,55 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			key,
 			$elm$json$Json$Encode$string(string));
 	});
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $elm$html$Html$img = _VirtualDom_node('img');
+var $elm$html$Html$Attributes$src = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'src',
+		_VirtualDom_noJavaScriptOrHtmlUri(url));
+};
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $author$project$Home$picture = A2(
+	$elm$html$Html$img,
+	_List_fromArray(
+		[
+			$elm$html$Html$Attributes$src('images/me.png'),
+			A2($elm$html$Html$Attributes$style, 'width', '100%')
+		]),
+	_List_Nil);
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$Home$coolColumn = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
+			A2($elm$html$Html$Attributes$style, 'width', '50%'),
+			A2($elm$html$Html$Attributes$style, 'vertical-align', 'top')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'margin', '0 100px')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$h1,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'text-wrap', 'nowrap')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Jonathan Reicher')
+						])),
+					$author$project$Home$picture
+				]))
+		]));
 var $elm$core$Basics$composeL = F3(
 	function (g, f, x) {
 		return g(
@@ -5197,16 +5245,13 @@ var $elm$html$Html$Attributes$href = function (url) {
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
+var $author$project$Links$myBlog = 'https://yonatan-reicher.github.io/blog';
 var $author$project$Links$myGithub = 'https://www.github.com/yonatan-reicher';
 var $author$project$Links$myInstagram = 'https://www.instagram.com/yonatan.reicher';
 var $author$project$Links$myMastodon = 'https://www.mastodon.social/@yonatanreicher';
 var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
 var $author$project$Home$openInNewTab = $elm$html$Html$Attributes$target('_blank');
 var $elm$html$Html$span = _VirtualDom_node('span');
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Home$items = function () {
 	var bold = $elm$html$Html$span(
 		_List_fromArray(
@@ -5254,13 +5299,36 @@ var $author$project$Home$items = function () {
 					$elm$html$Html$a,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$href('#/blog')
+							$elm$html$Html$Attributes$href($author$project$Links$myBlog)
 						]),
 					_List_fromArray(
 						[
 							$elm$html$Html$text('here')
 						])),
 					$elm$html$Html$text('.')
+				])),
+			A2(
+			$elm$html$Html$span,
+			_List_Nil,
+			_List_fromArray(
+				[
+					bold(
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Check')
+						])),
+					$elm$html$Html$text(' out some '),
+					A2(
+					$elm$html$Html$a,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$href('/projects.html')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('projects')
+						])),
+					$elm$html$Html$text(' I did.')
 				])),
 			A2(
 			$elm$html$Html$span,
@@ -5352,27 +5420,17 @@ var $author$project$Home$myBullets = A2(
 			$elm$core$List$singleton),
 		$author$project$Home$items));
 var $elm$html$Html$p = _VirtualDom_node('p');
-var $elm$html$Html$Attributes$src = function (url) {
-	return A2(
-		$elm$html$Html$Attributes$stringProperty,
-		'src',
-		_VirtualDom_noJavaScriptOrHtmlUri(url));
-};
-var $author$project$Home$mainContent = A2(
+var $author$project$Home$textColumn = A2(
 	$elm$html$Html$div,
 	_List_fromArray(
 		[
-			$elm$html$Html$Attributes$class('home')
+			A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
+			A2($elm$html$Html$Attributes$style, 'width', '500px'),
+			A2($elm$html$Html$Attributes$style, 'box-sizing', 'border-box'),
+			A2($elm$html$Html$Attributes$style, 'padding-top', '70px')
 		]),
 	_List_fromArray(
 		[
-			A2(
-			$elm$html$Html$h1,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Jonathan Reicher')
-				])),
 			A2(
 			$elm$html$Html$p,
 			_List_Nil,
@@ -5387,16 +5445,18 @@ var $author$project$Home$mainContent = A2(
 			_List_fromArray(
 				[
 					$elm$html$Html$text('\n            Currently I currently working under Shachar Itzaki at The Technion\n            for my MSc in Computer Science on Lean 4 and the humans that use it.\n            ')
-				])),
-			A2(
-			$elm$html$Html$img,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('me-img'),
-					$elm$html$Html$Attributes$src('images/me.png')
-				]),
-			_List_Nil)
+				]))
 		]));
+var $author$project$Home$mainContent = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'width', '1000px'),
+			A2($elm$html$Html$Attributes$style, 'max-width', '100%'),
+			A2($elm$html$Html$Attributes$style, 'margin', '0 auto')
+		]),
+	_List_fromArray(
+		[$author$project$Home$textColumn, $author$project$Home$coolColumn]));
 var $elm$virtual_dom$VirtualDom$node = function (tag) {
 	return _VirtualDom_node(
 		_VirtualDom_noScript(tag));

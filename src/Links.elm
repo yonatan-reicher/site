@@ -13,3 +13,5 @@ myInstagram : String
 myInstagram = "https://www.instagram.com/yonatan.reicher"
 
 
+myBlog : String
+myBlog = "https://yonatan-reicher.github.io/blog"
