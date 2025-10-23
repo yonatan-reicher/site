@@ -1,10 +1,18 @@
-module Projects exposing (Flags, Model, Msg, init, update, view, subscriptions)
+module Projects exposing (main)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser exposing (Document)
 import Links exposing (myGithub)
+
+
+main = Browser.document
+    { init = init
+    , update = update
+    , view = view
+    , subscriptions = subscriptions
+    }
 
 
 type alias Flags = ()

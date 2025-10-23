@@ -1,10 +1,18 @@
-module Home exposing (Flags, Model, Msg, init, update, view, subscriptions)
+module Home exposing (main)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser exposing (Document)
 import Links exposing (myGithub, myInstagram)
+
+
+main = Browser.document
+    { init = init
+    , update = update
+    , subscriptions = subscriptions
+    , view = view
+    }
 
 
 type alias Flags = ()
