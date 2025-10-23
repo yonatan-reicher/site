@@ -11913,11 +11913,27 @@ var $author$project$Blog$view = function (model) {
 				$author$project$Blog$viewContent(model)
 			]));
 };
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $author$project$Home$bottomDisclaimer = function () {
+	var fixed = false;
+	return A2(
+		$elm$html$Html$span,
+		fixed ? _List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'position', 'fixed'),
+				A2($elm$html$Html$Attributes$style, 'bottom', '10'),
+				A2($elm$html$Html$Attributes$style, 'max-width', 'inherit')
+			]) : _List_Nil,
+		_List_fromArray(
+			[
+				$elm$html$Html$text('\r\n            This site is old.\r\n            Most things here are not up to date.\r\n            ')
+			]));
+}();
+var $elm$html$Html$em = _VirtualDom_node('em');
 var $elm$html$Html$address = _VirtualDom_node('address');
 var $author$project$Links$myInstagram = 'https://www.instagram.com/yonatan.reicher';
 var $author$project$Home$openInNewTab = $elm$html$Html$Attributes$target('_blank');
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $author$project$Home$items = function () {
 	var bold = $elm$html$Html$span(
 		_List_fromArray(
@@ -12068,17 +12084,53 @@ var $author$project$Home$mainContent = A2(
 				])),
 			$author$project$Home$myBullets,
 			A2(
-			$elm$html$Html$span,
+			$elm$html$Html$p,
+			_List_Nil,
 			_List_fromArray(
 				[
-					A2($elm$html$Html$Attributes$style, 'position', 'fixed'),
-					A2($elm$html$Html$Attributes$style, 'bottom', '10'),
-					A2($elm$html$Html$Attributes$style, 'max-width', 'inherit')
-				]),
+					$elm$html$Html$text('\r\n            Currently I currently working under Shachar Itzaki at The Technion\r\n            for my MSc in Computer Science on Lean 4 and the humans that use it.\r\n            ')
+				])),
+			A2(
+			$elm$html$Html$h2,
+			_List_Nil,
 			_List_fromArray(
 				[
-					$elm$html$Html$text('\r\n                This site is old.\r\n                Most things here are not up to date.\r\n                ')
-				]))
+					$elm$html$Html$text('teaching')
+				])),
+			A2(
+			$elm$html$Html$p,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$text('I am TA-ing '),
+					A2(
+					$elm$html$Html$em,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Selected Topics In Formal Proofs ')
+						])),
+					$elm$html$Html$text('under Yuval Filmus. '),
+					$elm$html$Html$text('I have previously TA-ed '),
+					A2(
+					$elm$html$Html$em,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Programming Languages ')
+						])),
+					$elm$html$Html$text('and had the pleasure of sharing my excitement for ML and '),
+					$elm$html$Html$text('the displeasure of helping students understand SML/NJ '),
+					$elm$html$Html$text('error messages.')
+				])),
+			A2(
+			$elm$html$Html$p,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$elm$html$Html$text('\r\n            In the past I have also taught an advanced software engineering\r\n            class for high-schoolers at Ort Guttman School for a year, and have mentored\r\n            first-year students in C-programming at a high-school program called\r\n            Magshimim.\r\n            ')
+				])),
+			$author$project$Home$bottomDisclaimer
 		]));
 var $author$project$Home$view = function (_v0) {
 	return {

@@ -47,16 +47,28 @@ mainContent =
             my site. I make compilers, software and sometimes art.
             """ ]
         , myBullets
-        , span
-            [ style "position" "fixed"
-            , style "bottom" "10"
-            , style "max-width" "inherit"
+        , p [] [ text """
+            Currently I currently working under Shachar Itzaki at The Technion
+            for my MSc in Computer Science on Lean 4 and the humans that use it.
+            """ ]
+        , h2 [] [ text "teaching" ]
+        , p []
+            [ text "I am TA-ing "
+            , em [] [ text "Selected Topics In Formal Proofs " ]
+            , text "under Yuval Filmus. "
+            , text "I have previously TA-ed "
+            , em [] [ text "Programming Languages " ]
+            , text "and had the pleasure of sharing my excitement for ML and "
+            , text "the displeasure of helping students understand SML/NJ "
+            , text "error messages."
             ]
-            [ text """
-                This site is old.
-                Most things here are not up to date.
-                """
-            ]
+        , p [] [ text """
+            In the past I have also taught an advanced software engineering
+            class for high-schoolers at Ort Guttman School for a year, and have mentored
+            first-year students in C-programming at a high-school program called
+            Magshimim.
+            """ ]
+        , bottomDisclaimer
         ]
 
 
@@ -95,6 +107,24 @@ items =
         , text "." 
         ]
     ]
+
+
+bottomDisclaimer : Html Msg
+bottomDisclaimer =
+    let fixed = False in
+    span
+        ( if fixed then
+            [ style "position" "fixed"
+            , style "bottom" "10"
+            , style "max-width" "inherit"
+            ]
+          else []
+        )
+        [ text """
+            This site is old.
+            Most things here are not up to date.
+            """
+        ]
 
 
 openInNewTab : Attribute msg
