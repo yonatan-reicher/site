@@ -5165,12 +5165,12 @@ var $author$project$Projects$init = function (_v0) {
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $author$project$Projects$subscriptions = function (_v0) {
+var $author$project$Projects$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$none;
 };
 var $author$project$Projects$update = F2(
-	function (_v0, _v1) {
-		return _Utils_Tuple2(_Utils_Tuple0, $elm$core$Platform$Cmd$none);
+	function (msg, model) {
+		return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 	});
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -5203,20 +5203,150 @@ var $author$project$Common$myStylesheet = A3(
 			$elm$html$Html$Attributes$href('src/style.css')
 		]),
 	_List_Nil);
-var $elm$html$Html$a = _VirtualDom_node('a');
-var $elm$html$Html$br = _VirtualDom_node('br');
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
-var $elm$html$Html$li = _VirtualDom_node('li');
-var $author$project$Links$myGithub = 'https://www.github.com/yonatan-reicher';
-var $elm$html$Html$p = _VirtualDom_node('p');
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$Projects$ab = {
+	date: '2019',
+	description: _List_fromArray(
+		[
+			$elm$html$Html$text('\n        A compiler for a C-style language. Makes runnable x86 assembly source\n        code to be used with TASM.\n    ')
+		]),
+	githubLink: $elm$core$Maybe$Just('https://github.com/yonatan-reicher/AB'),
+	picturePath: $elm$core$Maybe$Just('images/ab.png'),
+	title: 'Compiler'
+};
+var $elm$html$Html$a = _VirtualDom_node('a');
+var $author$project$Projects$affogato = {
+	date: '2021-2022',
+	description: _List_fromArray(
+		[
+			$elm$html$Html$text('\n        A machine learning library for python, made with my friend '),
+			A2(
+			$elm$html$Html$a,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$href('https://github.com/galord123')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Gal')
+				])),
+			$elm$html$Html$text('.\n        It implements FC layers, Convolution layers, various activation\n        functions, SGD, Adam, Softmax, custom training loops and more.\n        Everything is modular\n    ')
+		]),
+	githubLink: $elm$core$Maybe$Just('https://gitlab.com/affogato/affogato'),
+	picturePath: $elm$core$Maybe$Just('images/affogato.png'),
+	title: 'Affogato'
+};
+var $elm$html$Html$li = _VirtualDom_node('li');
 var $elm$html$Html$ul = _VirtualDom_node('ul');
+var $author$project$Projects$blobs = {
+	date: '2021',
+	description: _List_fromArray(
+		[
+			$elm$html$Html$text('\n            A 2D simulation of blob creatures. They move, they fight and eat\n            each other, and they have color-based sight.\n        '),
+			A2(
+			$elm$html$Html$ul,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$li,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Implemented in Rust using RayLib')
+						])),
+					A2(
+					$elm$html$Html$li,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('\n                Collision detection implemented by me using sweep and prune.\n            ')
+						]))
+				]))
+		]),
+	githubLink: $elm$core$Maybe$Just('https://github.com/yonatan-reicher/blobs'),
+	picturePath: $elm$core$Maybe$Just('images/blobs.jpg'),
+	title: 'Blobs'
+};
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Projects$grRedesign = {
+	date: '2023',
+	description: _List_fromArray(
+		[
+			$elm$html$Html$text('\n            A redesign of the website of the Technion\'s Computer Science\n            faculty. Made in about a weekend, but got improved over time.\n            (Works on both\n        '),
+			A2(
+			$elm$html$Html$a,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$href('https://chrome.google.com/webstore/detail/gr%20%20-redesign/iaagdkjkkpiiollookginpcjapbhjfli')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Chrome')
+				])),
+			$elm$html$Html$text(' and '),
+			A2(
+			$elm$html$Html$a,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$href('https://addons.mozilla.org/en-US/firefox/addon/gr-redesign/')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Firefox')
+				])),
+			$elm$html$Html$text(').')
+		]),
+	githubLink: $elm$core$Maybe$Just('https://github.com/yonatan-reicher/gr-redesign'),
+	picturePath: $elm$core$Maybe$Just('images/grpp.jpg'),
+	title: 'GR++ Redesign'
+};
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $author$project$Projects$satellai = {
+	date: '2024',
+	description: _List_fromArray(
+		[
+			$elm$html$Html$text('\n        SatellAI is the name of a team I was briefly appended to for a summer\n        project. The project was about using classical machine learning\n        techniques on time-series data. Unfortunately I cannot say more.\n    ')
+		]),
+	githubLink: $elm$core$Maybe$Nothing,
+	picturePath: $elm$core$Maybe$Nothing,
+	title: 'SatellAI Project'
+};
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $author$project$Projects$tekclinic = {
+	date: '2024-2025',
+	description: _List_fromArray(
+		[
+			$elm$html$Html$text('\n        A final-year group project full stack application.\n    ')
+		]),
+	githubLink: $elm$core$Maybe$Just('https://www.github.com/tekclinic'),
+	picturePath: $elm$core$Maybe$Nothing,
+	title: 'TekClinic'
+};
+var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $elm$html$Html$p = _VirtualDom_node('p');
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $author$project$Projects$viewProjectLink = function (p) {
+	var _v0 = p.githubLink;
+	if (_v0.$ === 'Nothing') {
+		return $elm$html$Html$text('');
+	} else {
+		var l = _v0.a;
+		return A2(
+			$elm$html$Html$a,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$href(l)
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('GitHub')
+				]));
+	}
+};
 var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$html$Html$Attributes$src = function (url) {
 	return A2(
@@ -5224,15 +5354,34 @@ var $elm$html$Html$Attributes$src = function (url) {
 		'src',
 		_VirtualDom_noJavaScriptOrHtmlUri(url));
 };
-var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
-var $author$project$Projects$viewProject = function (_v0) {
-	var name = _v0.name;
-	var description = _v0.description;
-	var link = _v0.link;
-	var picturePath = _v0.picturePath;
-	var date = _v0.date;
+var $author$project$Projects$viewProjectPicture = function (p) {
+	var _v0 = p.picturePath;
+	if (_v0.$ === 'Nothing') {
+		return $elm$html$Html$text('');
+	} else {
+		var path = _v0.a;
+		return A2(
+			$elm$html$Html$a,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$href(path)
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$img,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$src(path),
+							A2($elm$html$Html$Attributes$style, 'width', '100%')
+						]),
+					_List_Nil)
+				]));
+	}
+};
+var $author$project$Projects$viewProject = function (proj) {
 	return A2(
-		$elm$html$Html$li,
+		$elm$html$Html$div,
 		_List_fromArray(
 			[
 				$elm$html$Html$Attributes$class('project')
@@ -5240,10 +5389,12 @@ var $author$project$Projects$viewProject = function (_v0) {
 		_List_fromArray(
 			[
 				A2(
-				$elm$html$Html$a,
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$href(link)
+						A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
+						A2($elm$html$Html$Attributes$style, 'width', '70%'),
+						A2($elm$html$Html$Attributes$style, 'vertical-align', 'top')
 					]),
 				_List_fromArray(
 					[
@@ -5251,256 +5402,84 @@ var $author$project$Projects$viewProject = function (_v0) {
 						$elm$html$Html$h3,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('project-title')
+								A2($elm$html$Html$Attributes$style, 'margin-top', '0')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(name)
-							]))
-					])),
-				function () {
-				if (picturePath.$ === 'Just') {
-					var path = picturePath.a;
-					return A2(
-						$elm$html$Html$a,
+								$elm$html$Html$text(proj.title)
+							])),
+						A2(
+						$elm$html$Html$span,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$href(link),
-								$elm$html$Html$Attributes$target('blank')
+								A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+								A2($elm$html$Html$Attributes$style, 'flex-direction', 'row'),
+								A2($elm$html$Html$Attributes$style, 'gap', '10px')
 							]),
 						_List_fromArray(
 							[
 								A2(
-								$elm$html$Html$img,
+								$elm$html$Html$span,
+								_List_Nil,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$class('project-image'),
-										$elm$html$Html$Attributes$src(path)
-									]),
-								_List_Nil)
-							]));
-				} else {
-					return $elm$html$Html$text('');
-				}
-			}(),
+										$elm$html$Html$text(proj.date)
+									])),
+								$author$project$Projects$viewProjectLink(proj)
+							])),
+						A2($elm$html$Html$p, _List_Nil, proj.description)
+					])),
 				A2(
-				$elm$html$Html$p,
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('project-description')
-					]),
-				description),
-				A2(
-				$elm$html$Html$p,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('project-date')
+						A2($elm$html$Html$Attributes$style, 'display', 'inline-block'),
+						A2($elm$html$Html$Attributes$style, 'width', '30%')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text(date)
+						$author$project$Projects$viewProjectPicture(proj)
 					]))
 			]));
 };
-var $author$project$Projects$viewProjects = A2(
+var $author$project$Projects$waveFunctionCollapse = {
+	date: '2023',
+	description: _List_fromArray(
+		[
+			$elm$html$Html$text('\n        Demo implementation of the Wave Function Collapse algorithm to generate\n        interesting looking procedural environments. The demo shows off a cute\n        townscape.\n        Made in C# with MonoGame.\n    ')
+		]),
+	githubLink: $elm$core$Maybe$Just('https://github.com/yonatan-reicher/wave-function-collapse/'),
+	picturePath: $elm$core$Maybe$Just('images/wave-function-collapse.png'),
+	title: 'Wave Function Collapse'
+};
+var $author$project$Projects$viewContent = A2(
 	$elm$html$Html$div,
 	_List_fromArray(
 		[
-			$elm$html$Html$Attributes$class('section'),
-			$elm$html$Html$Attributes$class('projects')
+			A2($elm$html$Html$Attributes$style, 'max-width', '1000px'),
+			A2($elm$html$Html$Attributes$style, 'margin', '0 auto')
 		]),
 	_List_fromArray(
 		[
 			A2(
-			$elm$html$Html$h2,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('section-title')
-				]),
+			$elm$html$Html$h1,
+			_List_Nil,
 			_List_fromArray(
 				[
 					$elm$html$Html$text('Projects')
 				])),
-			A2(
-			$elm$html$Html$ul,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('projects-list')
-				]),
-			_List_fromArray(
-				[
-					$author$project$Projects$viewProject(
-					{
-						date: '2022',
-						description: _List_fromArray(
-							[
-								$elm$html$Html$text('\n                        A simple, yet powerful, machine learning library for\n                        python. Made with love, with my friend, \n                        '),
-								A2(
-								$elm$html$Html$a,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$href('https://github.com/galord123')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Gal')
-									])),
-								$elm$html$Html$text('\n                        , For the Magshimim project.\n                        ')
-							]),
-						link: 'https://gitlab.com/affogato/affogato',
-						name: 'Affogato',
-						picturePath: $elm$core$Maybe$Just('images/affogato.png')
-					}),
-					$author$project$Projects$viewProject(
-					{
-						date: '2023-12-18',
-						description: _List_fromArray(
-							[
-								$elm$html$Html$text('\n                        A simple demo implementation of the Wave Function\n                        Collapse algorithm to generate an interesting looking\n                        town!\n                        Made in C# with MonoGame.\n                        ')
-							]),
-						link: 'https://github.com/yonatan-reicher/wave-function-collapse/',
-						name: 'Wave Function Collapse',
-						picturePath: $elm$core$Maybe$Just('images/wave-function-collapse.png')
-					}),
-					$author$project$Projects$viewProject(
-					{
-						date: '2023-10-27',
-						description: _List_fromArray(
-							[
-								$elm$html$Html$text('A simple character controller to test out phaser.js')
-							]),
-						link: 'https://yonatan-reicher.github.io/phaser-character-test/',
-						name: 'Character Controller Test',
-						picturePath: $elm$core$Maybe$Just('images/phaser-character-test.png')
-					}),
-					$author$project$Projects$viewProject(
-					{
-						date: '2023-02-24',
-						description: _List_fromArray(
-							[
-								$elm$html$Html$text('\n                        Major redesign for the website of the fauclty of\n                        computer science in the Technion. Made with love, in\n                        about a weekend. A must for every student in the\n                        faculty! (Works on both\n                        '),
-								A2(
-								$elm$html$Html$a,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$href('https://chrome.google.com/webstore/detail/gr%20%20-redesign/iaagdkjkkpiiollookginpcjapbhjfli')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Chrome')
-									])),
-								$elm$html$Html$text(' and '),
-								A2(
-								$elm$html$Html$a,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$href('https://addons.mozilla.org/en-US/firefox/addon/gr-redesign/')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Firefox')
-									])),
-								$elm$html$Html$text(').')
-							]),
-						link: 'https://addons.mozilla.org/en-US/firefox/addon/gr-redesign/',
-						name: 'GR++ Redesign',
-						picturePath: $elm$core$Maybe$Just('images/grpp.jpg')
-					}),
-					$author$project$Projects$viewProject(
-					{
-						date: '2019',
-						description: _List_fromArray(
-							[
-								$elm$html$Html$text('\n                        A C-Style language that complies to human-readable\n                        X86 assembly for TASM\n                        ')
-							]),
-						link: 'https://github.com/yonatan-reicher/AB',
-						name: 'AB',
-						picturePath: $elm$core$Maybe$Just('images/ab.png')
-					}),
-					$author$project$Projects$viewProject(
-					{
-						date: '2021-01-18',
-						description: _List_fromArray(
-							[
-								A2(
-								$elm$html$Html$p,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('\n                            2d simulation of blob creatures. They have\n                            color-based sight, and can move, eat, and fight.\n                            ')
-									])),
-								A2(
-								$elm$html$Html$p,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$ul,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$li,
-												_List_Nil,
-												_List_fromArray(
-													[
-														$elm$html$Html$text('\n                                Implemented using Rust and Raylib.\n                                ')
-													])),
-												A2(
-												$elm$html$Html$li,
-												_List_Nil,
-												_List_fromArray(
-													[
-														$elm$html$Html$text('\n                                Collision detection implemented by me with the\n                                sweep and prune algorithm.\n                                ')
-													]))
-											]))
-									]))
-							]),
-						link: 'https://github.com/yonatan-reicher/blobs',
-						name: 'Blobs',
-						picturePath: $elm$core$Maybe$Just('images/blobs.jpg')
-					}),
-					$author$project$Projects$viewProject(
-					{
-						date: '2022-01-28',
-						description: _List_fromArray(
-							[
-								$elm$html$Html$text('\n                        Putting stuff on the internet is fun, and also - really\n                        embarrassing.\n                        '),
-								A2($elm$html$Html$br, _List_Nil, _List_Nil),
-								A2($elm$html$Html$br, _List_Nil, _List_Nil),
-								$elm$html$Html$text('\n                        I made this site to put my projects on display, to\n                        practice some code, and to get over a fear of putting\n                        my work out there.\n                        ')
-							]),
-						link: '#',
-						name: 'This Site',
-						picturePath: $elm$core$Maybe$Nothing
-					})
-				])),
-			A2(
-			$elm$html$Html$p,
-			_List_fromArray(
-				[
-					A2($elm$html$Html$Attributes$style, 'text-align', 'center')
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('\n                As you might have noticed, all of these are old. One day I\'ll update this site.\n                The rest of my projects are on\n                '),
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$href($author$project$Links$myGithub)
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('github')
-						])),
-					$elm$html$Html$text('.')
-				]))
+			$author$project$Projects$viewProject($author$project$Projects$satellai),
+			$author$project$Projects$viewProject($author$project$Projects$tekclinic),
+			$author$project$Projects$viewProject($author$project$Projects$affogato),
+			$author$project$Projects$viewProject($author$project$Projects$waveFunctionCollapse),
+			$author$project$Projects$viewProject($author$project$Projects$grRedesign),
+			$author$project$Projects$viewProject($author$project$Projects$ab),
+			$author$project$Projects$viewProject($author$project$Projects$blobs)
 		]));
 var $author$project$Projects$view = function (_v0) {
 	return {
 		body: _List_fromArray(
-			[$author$project$Common$myStylesheet, $author$project$Projects$viewProjects]),
+			[$author$project$Common$myStylesheet, $author$project$Projects$viewContent]),
 		title: 'Jonathan Reicher | Projects'
 	};
 };
